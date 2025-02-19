@@ -1,178 +1,168 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import os
 
 class ControlParticipacion:
     def __init__(self):
-        # Inicializar estado de la sesión
+        # Inicializar estados de sesión
         if 'estudiantes' not in st.session_state:
             st.session_state.estudiantes = pd.DataFrame(
-                columns=['Nombre', 'Participaciones', 'Nota', 'Puntaje']
+                columns=['Nombre', 'Participaciones', 'Puntaje']
             )
         
         if 'preguntas' not in st.session_state:
             st.session_state.preguntas = []
         
+        if 'preguntas_realizadas' not in st.session_state:
+            st.session_state.preguntas_realizadas = []
+        
         if 'historial_participaciones' not in st.session_state:
             st.session_state.historial_participaciones = []
 
+    def cargar_estudiantes_desde_txt(self, archivo):
+        """Cargar estudiantes desde un archivo de texto plano"""
+        try:
+            # Leer nombres de estudiantes
+            nombres = archivo.getvalue().decode('utf-8').splitlines()
+            
+            # Filtrar nombres no vacíos
+            nombres = [nombre.strip() for nombre in nombres if nombre.strip()]
+            
+            # Agregar estudiantes
+            for nombre in nombres:
+                if nombre not in st.session_state.estudiantes['Nombre'].values:
+                    nuevo_estudiante = pd.DataFrame({
+                        'Nombre': [nombre],
+                        'Participaciones': [0],
+                        'Puntaje': [0]
+                    })
+                    st.session_state.estudiantes = pd.concat([
+                        st.session_state.estudiantes, 
+                        nuevo_estudiante
+                    ], ignore_index=True)
+            
+            st.success(f"Se cargaron {len(nombres)} estudiantes")
+        except Exception as e:
+            st.error(f"Error al cargar el archivo: {e}")
+
+    def cargar_preguntas_desde_txt(self, archivo):
+        """Cargar preguntas desde un archivo de texto plano"""
+        try:
+            # Leer preguntas
+            preguntas = archivo.getvalue().decode('utf-8').splitlines()
+            
+            # Filtrar preguntas no vacías
+            preguntas = [pregunta.strip() for pregunta in preguntas if pregunta.strip()]
+            
+            # Agregar preguntas
+            st.session_state.preguntas = preguntas
+            st.success(f"Se cargaron {len(preguntas)} preguntas")
+        except Exception as e:
+            st.error(f"Error al cargar el archivo: {e}")
+
     def mostrar_interfaz(self):
+        # Configuración de página
+        st.set_page_config(page_title="Control de Participación", page_icon="📊")
+        
+        # Logo (si existe)
+        logo_path = 'logo.jpg'  # Puedes cambiar la extensión
+        if os.path.exists(logo_path):
+            st.sidebar.image(logo_path, use_column_width=True)
+
+        # Título principal
         st.title("Control de Participación")
 
         # Menú de pestañas
-        tab1, tab2, tab3, tab4 = st.tabs([
+        tab1, tab2, tab3 = st.tabs([
             "Gestión de Estudiantes", 
-            "Registrar Participación", 
-            "Estadísticas", 
-            "Preguntas Planificadas"
+            "Preguntas y Participación", 
+            "Estadísticas"
         ])
 
         with tab1:
             self.gestion_estudiantes()
 
         with tab2:
-            self.registrar_participacion()
+            self.gestion_preguntas_participacion()
 
         with tab3:
             self.mostrar_estadisticas()
 
-        with tab4:
-            self.gestion_preguntas()
-
     def gestion_estudiantes(self):
-        # Columnas para entrada de datos
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            nombre_estudiante = st.text_input("Nombre del Estudiante")
-        
-        with col2:
-            puntaje_inicial = st.number_input(
-                "Puntaje Inicial", 
-                min_value=0, 
-                step=1,
-                value=0
-            )
-        
-        with col3:
-            nota_inicial = st.number_input(
-                "Nota Inicial", 
-                min_value=0.0, 
-                max_value=20.0, 
-                step=0.5,
-                value=0.0
-            )
+        # Cargar archivo de estudiantes
+        st.subheader("Cargar Estudiantes")
+        archivo_estudiantes = st.file_uploader(
+            "Cargar lista de estudiantes (txt)", 
+            type=['txt']
+        )
+        if archivo_estudiantes is not None:
+            self.cargar_estudiantes_desde_txt(archivo_estudiantes)
 
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            if st.button("Agregar Estudiante"):
-                self.agregar_estudiante(nombre_estudiante, puntaje_inicial, nota_inicial)
-        
-        with col_btn2:
-            archivo_txt = st.file_uploader(
-                "Cargar lista de estudiantes", 
-                type=['txt', 'csv']
-            )
-            if archivo_txt is not None:
-                self.cargar_archivo(archivo_txt)
+        # Mostrar y gestionar estudiantes
+        st.subheader("Lista de Estudiantes")
+        if not st.session_state.estudiantes.empty:
+            # Crear una copia modificable del DataFrame
+            df_editado = st.session_state.estudiantes.copy()
+            
+            # Crear columnas para cada estudiante
+            for i, estudiante in df_editado.iterrows():
+                col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+                
+                with col1:
+                    st.write(estudiante['Nombre'])
+                
+                with col2:
+                    st.write(f"Participaciones: {estudiante['Participaciones']}")
+                
+                with col3:
+                    st.write(f"Puntaje: {estudiante['Puntaje']}")
+                
+                with col4:
+                    # Botones para ajustar puntaje
+                    col_sumar, col_restar = st.columns(2)
+                    with col_sumar:
+                        if st.button(f"+1 a {estudiante['Nombre']}", key=f"sumar_{i}"):
+                            st.session_state.estudiantes.loc[i, 'Puntaje'] += 1
+                            st.session_state.estudiantes.loc[i, 'Participaciones'] += 1
+                            st.experimental_rerun()
+                    
+                    with col_restar:
+                        if st.button(f"-1 a {estudiante['Nombre']}", key=f"restar_{i}"):
+                            st.session_state.estudiantes.loc[i, 'Puntaje'] -= 1
+                            st.experimental_rerun()
 
-        # Mostrar tabla de estudiantes
-        st.dataframe(st.session_state.estudiantes)
+    def gestion_preguntas_participacion(self):
+        # Cargar archivo de preguntas
+        st.subheader("Cargar Preguntas")
+        archivo_preguntas = st.file_uploader(
+            "Cargar lista de preguntas (txt)", 
+            type=['txt']
+        )
+        if archivo_preguntas is not None:
+            self.cargar_preguntas_desde_txt(archivo_preguntas)
 
-    def agregar_estudiante(self, nombre, puntaje, nota):
-        if nombre and nombre.strip():
-            # Verificar si el estudiante ya existe
-            if nombre not in st.session_state.estudiantes['Nombre'].values:
-                nuevo_estudiante = pd.DataFrame({
-                    'Nombre': [nombre],
-                    'Participaciones': [0],
-                    'Nota': [nota],
-                    'Puntaje': [puntaje]
-                })
-                st.session_state.estudiantes = pd.concat([
-                    st.session_state.estudiantes, 
-                    nuevo_estudiante
-                ], ignore_index=True)
-                st.success(f"Estudiante {nombre} agregado exitosamente")
-            else:
-                st.warning(f"El estudiante {nombre} ya existe en la lista")
+        # Gestión de preguntas
+        st.subheader("Preguntas Pendientes")
+        for i, pregunta in enumerate(st.session_state.preguntas):
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                st.write(pregunta)
+            
+            with col2:
+                # Botón para marcar pregunta como realizada
+                if st.button(f"Realizada {i+1}", key=f"realizada_{i}"):
+                    # Mover pregunta a preguntas realizadas
+                    st.session_state.preguntas_realizadas.append(pregunta)
+                    # Eliminar de preguntas pendientes
+                    del st.session_state.preguntas[i]
+                    st.experimental_rerun()
 
-    def registrar_participacion(self):
-        st.header("Registrar Participación")
-        
-        # Seleccionar estudiante
-        estudiantes = st.session_state.estudiantes['Nombre'].tolist()
-        estudiante_seleccionado = st.selectbox("Seleccionar Estudiante", estudiantes)
-        
-        # Detalles de la participación
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            tipo_participacion = st.radio(
-                "Tipo de Participación", 
-                ["Respuesta Correcta", "Respuesta Incorrecta", "Participación"]
-            )
-        
-        with col2:
-            puntos = st.number_input(
-                "Puntos", 
-                min_value=-5, 
-                max_value=5, 
-                step=1,
-                value=1
-            )
-        
-        # Descripción de la participación
-        descripcion = st.text_area("Descripción de la Participación")
-        
-        # Botón para registrar
-        if st.button("Registrar Participación"):
-            # Actualizar puntaje y participaciones
-            mask = st.session_state.estudiantes['Nombre'] == estudiante_seleccionado
-            
-            # Incrementar participaciones
-            st.session_state.estudiantes.loc[mask, 'Participaciones'] += 1
-            
-            # Actualizar puntaje
-            st.session_state.estudiantes.loc[mask, 'Puntaje'] += puntos
-            
-            # Registrar en historial
-            participacion = {
-                'Estudiante': estudiante_seleccionado,
-                'Tipo': tipo_participacion,
-                'Puntos': puntos,
-                'Descripción': descripcion,
-                'Fecha': pd.Timestamp.now()
-            }
-            st.session_state.historial_participaciones.append(participacion)
-            
-            st.success(f"Participación de {estudiante_seleccionado} registrada")
-        
-        # Mostrar historial de participaciones
-        st.subheader("Historial de Participaciones")
-        if st.session_state.historial_participaciones:
-            historial_df = pd.DataFrame(st.session_state.historial_participaciones)
-            st.dataframe(historial_df)
-
-    def cargar_archivo(self, archivo):
-        try:
-            # Intentar leer como CSV primero
-            df = pd.read_csv(archivo)
-            
-            # Verificar columnas
-            columnas_requeridas = ['Nombre', 'Participaciones', 'Nota', 'Puntaje']
-            if all(col in df.columns for col in columnas_requeridas):
-                # Concatenar y eliminar duplicados
-                st.session_state.estudiantes = pd.concat([
-                    st.session_state.estudiantes, 
-                    df
-                ]).drop_duplicates(subset=['Nombre'], keep='last')
-                st.success("Archivo cargado exitosamente")
-            else:
-                st.error("El archivo debe contener columnas: Nombre, Participaciones, Nota, Puntaje")
-        
-        except Exception as e:
-            st.error(f"Error al cargar el archivo: {e}")
+        # Preguntas realizadas
+        st.subheader("Preguntas Realizadas")
+        for pregunta in st.session_state.preguntas_realizadas:
+            st.write(f"~~{pregunta}~~")
 
     def mostrar_estadisticas(self):
         if st.session_state.estudiantes.empty:
@@ -180,9 +170,9 @@ class ControlParticipacion:
             return
 
         # Estadísticas generales
-        st.header("Estadísticas Generales")
+        st.header("Estadísticas")
         
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
             st.metric(
@@ -200,12 +190,6 @@ class ControlParticipacion:
             st.metric(
                 "Puntaje Promedio", 
                 f"{st.session_state.estudiantes['Puntaje'].mean():.2f}"
-            )
-        
-        with col4:
-            st.metric(
-                "Nota Promedio", 
-                f"{st.session_state.estudiantes['Nota'].mean():.2f}"
             )
 
         # Gráficos
@@ -239,35 +223,12 @@ class ControlParticipacion:
         ).head(5)
         st.dataframe(mejores_estudiantes)
 
-    def gestion_preguntas(self):
-        # Entrada de preguntas
-        nueva_pregunta = st.text_area("Escribe una nueva pregunta")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("Agregar Pregunta"):
-                if nueva_pregunta:
-                    st.session_state.preguntas.append(nueva_pregunta)
-                    st.success("Pregunta agregada exitosamente")
-        
-        with col2:
-            if st.button("Limpiar Preguntas"):
-                st.session_state.preguntas = []
-                st.success("Preguntas eliminadas")
-        
-        # Mostrar preguntas
-        st.subheader("Preguntas Actuales:")
-        for i, pregunta in enumerate(st.session_state.preguntas, 1):
-            st.write(f"{i}. {pregunta}")
-            # Botón para eliminar pregunta individual
-            if st.button(f"Eliminar Pregunta {i}"):
-                del st.session_state.preguntas[i-1]
-                st.experimental_rerun()
-
 def main():
     app = ControlParticipacion()
     app.mostrar_interfaz()
 
 if __name__ == "__main__":
     main()
+
+# Nota: Para el logo, coloca un archivo llamado logo.jpg o logo.bmp 
+# en el mismo directorio que el script
