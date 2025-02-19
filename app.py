@@ -3,9 +3,11 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 import json
+import base64
+from io import StringIO
 
 # Configuración de la página
-st.set_page_config(page_title="Control de Participación", layout="wide")
+st.set_page_config(page_title="CONTROL DE PARTICIPACIÓN", layout="wide")
 
 # Aplicar estilo personalizado
 st.markdown("""
@@ -18,6 +20,11 @@ st.markdown("""
     }
     .stTextInput>div>div>input {
         padding: 0.5rem;
+    }
+    .title {
+        text-transform: uppercase;
+        text-align: center;
+        font-weight: bold;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -35,25 +42,64 @@ class ControlParticipacion:
             
         if 'preguntas' not in st.session_state:
             st.session_state.preguntas = []
+            
+        if 'logo' not in st.session_state:
+            st.session_state.logo = None
+
+    def cargar_logo(self):
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            logo_file = st.file_uploader("CARGAR LOGO DE LA INSTITUCIÓN", type=['png', 'jpg', 'jpeg'])
+            if logo_file is not None:
+                st.session_state.logo = base64.b64encode(logo_file.read()).decode()
+                st.image(logo_file, width=200)
 
     def mostrar_header(self):
-        st.title("Control de Participación")
+        if st.session_state.logo:
+            st.markdown(f"""
+                <div style="text-align: center">
+                    <img src="data:image/png;base64,{st.session_state.logo}" width="200"/>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
         col1, col2 = st.columns([3, 1])
         with col1:
-            st.markdown("### Gestión de Estudiantes")
+            st.markdown("### GESTIÓN DE ESTUDIANTES")
         with col2:
             st.session_state.participaciones_esperadas = st.number_input(
-                "Participaciones esperadas",
+                "PARTICIPACIONES ESPERADAS",
                 min_value=1,
                 value=st.session_state.participaciones_esperadas
             )
 
+    def cargar_archivo_txt(self, tipo):
+        archivo = st.file_uploader(f"CARGAR ARCHIVO {tipo.upper()}", type=['txt'])
+        if archivo is not None:
+            contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
+            contenido = [linea.strip() for linea in contenido if linea.strip()]
+            
+            if tipo == "estudiantes":
+                for estudiante in contenido:
+                    if estudiante not in st.session_state.estudiantes['Nombre'].values:
+                        nuevo_df = pd.DataFrame({
+                            'Nombre': [estudiante],
+                            'Participaciones': [0],
+                            'Puntaje': [0]
+                        })
+                        st.session_state.estudiantes = pd.concat([st.session_state.estudiantes, nuevo_df], ignore_index=True)
+                st.success("Estudiantes cargados exitosamente")
+            
+            elif tipo == "preguntas":
+                st.session_state.preguntas.extend(contenido)
+                st.success("Preguntas cargadas exitosamente")
+
     def agregar_estudiante(self):
-        col1, col2 = st.columns([3, 1])
+        col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
-            nuevo_estudiante = st.text_input("Nombre del estudiante")
+            nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
         with col2:
-            if st.button("Agregar"):
+            if st.button("AGREGAR ESTUDIANTE"):
                 if nuevo_estudiante:
                     if nuevo_estudiante not in st.session_state.estudiantes['Nombre'].values:
                         nuevo_df = pd.DataFrame({
@@ -65,6 +111,8 @@ class ControlParticipacion:
                         st.success(f"Estudiante {nuevo_estudiante} agregado con éxito")
                     else:
                         st.error("Este estudiante ya existe")
+        with col3:
+            self.cargar_archivo_txt("estudiantes")
 
     def mostrar_estudiantes(self):
         for _, estudiante in st.session_state.estudiantes.iterrows():
@@ -74,7 +122,7 @@ class ControlParticipacion:
             with col2:
                 st.write(f"{estudiante['Participaciones']}/{st.session_state.participaciones_esperadas}")
             with col3:
-                st.write(f"Nota: {estudiante['Puntaje']}")
+                st.write(f"NOTA: {estudiante['Puntaje']}")
             with col4:
                 if st.button("+1", key=f"plus_{estudiante['Nombre']}"):
                     idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
@@ -97,29 +145,63 @@ class ControlParticipacion:
 
     def mostrar_graficos(self):
         if not st.session_state.estudiantes.empty:
-            fig = px.bar(
-                st.session_state.estudiantes,
-                x='Nombre',
-                y='Participaciones',
-                title='Participaciones por Estudiante'
-            )
-            st.plotly_chart(fig, use_container_width=True)
+            col1, col2 = st.columns(2)
+            
+            # Gráfico de barras
+            with col1:
+                fig_bar = px.bar(
+                    st.session_state.estudiantes,
+                    x='Nombre',
+                    y='Participaciones',
+                    title='PARTICIPACIONES POR ESTUDIANTE'
+                )
+                fig_bar.update_layout(
+                    title_x=0.5,
+                    title_font_size=20
+                )
+                st.plotly_chart(fig_bar, use_container_width=True)
+            
+            # Gráfico de torta
+            with col2:
+                # Calcular estadísticas
+                total_participaciones = st.session_state.estudiantes['Participaciones'].sum()
+                datos_torta = st.session_state.estudiantes.copy()
+                datos_torta['Porcentaje'] = (datos_torta['Participaciones'] / total_participaciones * 100)
+                
+                fig_pie = px.pie(
+                    datos_torta,
+                    values='Porcentaje',
+                    names='Nombre',
+                    title='DISTRIBUCIÓN DE PARTICIPACIONES (%)'
+                )
+                fig_pie.update_layout(
+                    title_x=0.5,
+                    title_font_size=20
+                )
+                st.plotly_chart(fig_pie, use_container_width=True)
 
     def gestionar_preguntas(self):
-        st.markdown("### Preguntas Planificadas")
-        nueva_pregunta = st.text_input("Escriba una nueva pregunta...")
-        if st.button("Agregar Pregunta"):
-            if nueva_pregunta:
-                st.session_state.preguntas.append(nueva_pregunta)
+        st.markdown("### PREGUNTAS PLANIFICADAS")
+        col1, col2, col3 = st.columns([2, 1, 1])
+        
+        with col1:
+            nueva_pregunta = st.text_input("ESCRIBA UNA NUEVA PREGUNTA")
+        with col2:
+            if st.button("AGREGAR PREGUNTA"):
+                if nueva_pregunta:
+                    st.session_state.preguntas.append(nueva_pregunta)
+        with col3:
+            self.cargar_archivo_txt("preguntas")
 
         if st.session_state.preguntas:
             for i, pregunta in enumerate(st.session_state.preguntas, 1):
                 st.write(f"{i}. {pregunta}")
 
-        if st.button("Limpiar Preguntas"):
+        if st.button("LIMPIAR PREGUNTAS"):
             st.session_state.preguntas = []
 
     def run(self):
+        self.cargar_logo()
         self.mostrar_header()
         self.agregar_estudiante()
         st.markdown("---")
