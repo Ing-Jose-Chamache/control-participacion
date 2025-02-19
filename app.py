@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
-import json
 import base64
 from io import StringIO
 
@@ -26,6 +25,12 @@ st.markdown("""
         text-align: center;
         font-weight: bold;
     }
+    .logo-container {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        width: 100px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -47,18 +52,17 @@ class ControlParticipacion:
             st.session_state.logo = None
 
     def cargar_logo(self):
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            logo_file = st.file_uploader("CARGAR LOGO DE LA INSTITUCIÓN", type=['png', 'jpg', 'jpeg'])
+        col1, col2, col3 = st.columns([1, 8, 1])
+        with col1:
+            logo_file = st.file_uploader("LOGO", type=['png', 'jpg', 'jpeg'])
             if logo_file is not None:
                 st.session_state.logo = base64.b64encode(logo_file.read()).decode()
-                st.image(logo_file, width=200)
 
     def mostrar_header(self):
         if st.session_state.logo:
             st.markdown(f"""
-                <div style="text-align: center">
-                    <img src="data:image/png;base64,{st.session_state.logo}" width="200"/>
+                <div class="logo-container">
+                    <img src="data:image/png;base64,{st.session_state.logo}" width="80"/>
                 </div>
             """, unsafe_allow_html=True)
         
@@ -76,23 +80,33 @@ class ControlParticipacion:
     def cargar_archivo_txt(self, tipo):
         archivo = st.file_uploader(f"CARGAR ARCHIVO {tipo.upper()}", type=['txt'])
         if archivo is not None:
-            contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
-            contenido = [linea.strip() for linea in contenido if linea.strip()]
-            
-            if tipo == "estudiantes":
-                for estudiante in contenido:
-                    if estudiante not in st.session_state.estudiantes['Nombre'].values:
-                        nuevo_df = pd.DataFrame({
-                            'Nombre': [estudiante],
-                            'Participaciones': [0],
-                            'Puntaje': [0]
-                        })
-                        st.session_state.estudiantes = pd.concat([st.session_state.estudiantes, nuevo_df], ignore_index=True)
-                st.success("Estudiantes cargados exitosamente")
-            
-            elif tipo == "preguntas":
-                st.session_state.preguntas.extend(contenido)
-                st.success("Preguntas cargadas exitosamente")
+            try:
+                contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
+                contenido = [linea.strip() for linea in contenido if linea.strip()]
+                
+                if tipo == "estudiantes":
+                    nuevos_estudiantes = []
+                    for estudiante in contenido:
+                        if estudiante not in st.session_state.estudiantes['Nombre'].values:
+                            nuevos_estudiantes.append({
+                                'Nombre': estudiante,
+                                'Participaciones': 0,
+                                'Puntaje': 0
+                            })
+                    
+                    if nuevos_estudiantes:
+                        nuevo_df = pd.DataFrame(nuevos_estudiantes)
+                        st.session_state.estudiantes = pd.concat(
+                            [st.session_state.estudiantes, nuevo_df],
+                            ignore_index=True
+                        )
+                    st.success("Estudiantes cargados exitosamente")
+                
+                elif tipo == "preguntas":
+                    st.session_state.preguntas.extend(contenido)
+                    st.success("Preguntas cargadas exitosamente")
+            except Exception as e:
+                st.error(f"Error al cargar el archivo: {str(e)}")
 
     def agregar_estudiante(self):
         col1, col2, col3 = st.columns([2, 1, 1])
@@ -107,7 +121,10 @@ class ControlParticipacion:
                             'Participaciones': [0],
                             'Puntaje': [0]
                         })
-                        st.session_state.estudiantes = pd.concat([st.session_state.estudiantes, nuevo_df], ignore_index=True)
+                        st.session_state.estudiantes = pd.concat(
+                            [st.session_state.estudiantes, nuevo_df],
+                            ignore_index=True
+                        )
                         st.success(f"Estudiante {nuevo_estudiante} agregado con éxito")
                     else:
                         st.error("Este estudiante ya existe")
@@ -115,33 +132,44 @@ class ControlParticipacion:
             self.cargar_archivo_txt("estudiantes")
 
     def mostrar_estudiantes(self):
-        for _, estudiante in st.session_state.estudiantes.iterrows():
-            col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
-            with col1:
-                st.write(estudiante['Nombre'])
-            with col2:
-                st.write(f"{estudiante['Participaciones']}/{st.session_state.participaciones_esperadas}")
-            with col3:
-                st.write(f"NOTA: {estudiante['Puntaje']}")
-            with col4:
-                if st.button("+1", key=f"plus_{estudiante['Nombre']}"):
-                    idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
-                    st.session_state.estudiantes.loc[idx, 'Participaciones'] += 1
-                    st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(
-                        20,
-                        (st.session_state.estudiantes.loc[idx, 'Participaciones'] / 
-                         st.session_state.participaciones_esperadas) * 20
+        if not st.session_state.estudiantes.empty:
+            st.dataframe(
+                st.session_state.estudiantes,
+                column_config={
+                    "Nombre": "ESTUDIANTE",
+                    "Participaciones": st.column_config.NumberColumn(
+                        "PARTICIPACIONES",
+                        format="%d/%d" % (0, st.session_state.participaciones_esperadas)
+                    ),
+                    "Puntaje": st.column_config.NumberColumn(
+                        "NOTA",
+                        format="%.1f"
                     )
-            with col5:
-                if st.button("-1", key=f"minus_{estudiante['Nombre']}"):
-                    idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
-                    if st.session_state.estudiantes.loc[idx, 'Participaciones'] > 0:
-                        st.session_state.estudiantes.loc[idx, 'Participaciones'] -= 1
+                },
+                hide_index=True
+            )
+
+            for _, estudiante in st.session_state.estudiantes.iterrows():
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    if st.button("+1", key=f"plus_{estudiante['Nombre']}"):
+                        idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
+                        st.session_state.estudiantes.loc[idx, 'Participaciones'] += 1
                         st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(
                             20,
                             (st.session_state.estudiantes.loc[idx, 'Participaciones'] / 
                              st.session_state.participaciones_esperadas) * 20
                         )
+                with col2:
+                    if st.button("-1", key=f"minus_{estudiante['Nombre']}"):
+                        idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
+                        if st.session_state.estudiantes.loc[idx, 'Participaciones'] > 0:
+                            st.session_state.estudiantes.loc[idx, 'Participaciones'] -= 1
+                            st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(
+                                20,
+                                (st.session_state.estudiantes.loc[idx, 'Participaciones'] / 
+                                 st.session_state.participaciones_esperadas) * 20
+                            )
 
     def mostrar_graficos(self):
         if not st.session_state.estudiantes.empty:
@@ -163,22 +191,22 @@ class ControlParticipacion:
             
             # Gráfico de torta
             with col2:
-                # Calcular estadísticas
-                total_participaciones = st.session_state.estudiantes['Participaciones'].sum()
                 datos_torta = st.session_state.estudiantes.copy()
-                datos_torta['Porcentaje'] = (datos_torta['Participaciones'] / total_participaciones * 100)
-                
-                fig_pie = px.pie(
-                    datos_torta,
-                    values='Porcentaje',
-                    names='Nombre',
-                    title='DISTRIBUCIÓN DE PARTICIPACIONES (%)'
-                )
-                fig_pie.update_layout(
-                    title_x=0.5,
-                    title_font_size=20
-                )
-                st.plotly_chart(fig_pie, use_container_width=True)
+                total_participaciones = datos_torta['Participaciones'].sum()
+                if total_participaciones > 0:
+                    datos_torta['Porcentaje'] = (datos_torta['Participaciones'] / total_participaciones * 100)
+                    
+                    fig_pie = px.pie(
+                        datos_torta,
+                        values='Porcentaje',
+                        names='Nombre',
+                        title='DISTRIBUCIÓN DE PARTICIPACIONES (%)'
+                    )
+                    fig_pie.update_layout(
+                        title_x=0.5,
+                        title_font_size=20
+                    )
+                    st.plotly_chart(fig_pie, use_container_width=True)
 
     def gestionar_preguntas(self):
         st.markdown("### PREGUNTAS PLANIFICADAS")
