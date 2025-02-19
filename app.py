@@ -24,12 +24,22 @@ st.markdown("""
         text-transform: uppercase;
         text-align: center;
         font-weight: bold;
+        font-size: 2.5em;
     }
     .logo-container {
-        position: absolute;
-        left: 10px;
-        top: 10px;
-        width: 100px;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    .credits {
+        text-align: center;
+        padding: 20px;
+        background-color: #f0f2f6;
+        border-radius: 10px;
+        margin-top: 30px;
+    }
+    .completed {
+        text-decoration: line-through;
+        color: #808080;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -48,12 +58,15 @@ class ControlParticipacion:
         if 'preguntas' not in st.session_state:
             st.session_state.preguntas = []
             
+        if 'preguntas_completadas' not in st.session_state:
+            st.session_state.preguntas_completadas = set()
+            
         if 'logo' not in st.session_state:
             st.session_state.logo = None
 
     def cargar_logo(self):
-        col1, col2, col3 = st.columns([1, 8, 1])
-        with col1:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
             logo_file = st.file_uploader("LOGO", type=['png', 'jpg', 'jpeg'])
             if logo_file is not None:
                 st.session_state.logo = base64.b64encode(logo_file.read()).decode()
@@ -62,7 +75,7 @@ class ControlParticipacion:
         if st.session_state.logo:
             st.markdown(f"""
                 <div class="logo-container">
-                    <img src="data:image/png;base64,{st.session_state.logo}" width="80"/>
+                    <img src="data:image/png;base64,{st.session_state.logo}" width="200"/>
                 </div>
             """, unsafe_allow_html=True)
         
@@ -130,6 +143,13 @@ class ControlParticipacion:
                         st.error("Este estudiante ya existe")
         with col3:
             self.cargar_archivo_txt("estudiantes")
+
+        # Botón para limpiar lista de estudiantes
+        if st.button("LIMPIAR LISTA DE ESTUDIANTES"):
+            st.session_state.estudiantes = pd.DataFrame(
+                columns=['Nombre', 'Participaciones', 'Puntaje']
+            )
+            st.success("Lista de estudiantes limpiada exitosamente")
 
     def mostrar_estudiantes(self):
         if not st.session_state.estudiantes.empty:
@@ -222,11 +242,38 @@ class ControlParticipacion:
             self.cargar_archivo_txt("preguntas")
 
         if st.session_state.preguntas:
-            for i, pregunta in enumerate(st.session_state.preguntas, 1):
-                st.write(f"{i}. {pregunta}")
+            for i, pregunta in enumerate(st.session_state.preguntas):
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    # Mostrar pregunta tachada si está completada
+                    if i in st.session_state.preguntas_completadas:
+                        st.markdown(f'<p class="completed">{i+1}. {pregunta}</p>', unsafe_allow_html=True)
+                    else:
+                        st.write(f"{i+1}. {pregunta}")
+                with col2:
+                    # Botón para marcar/desmarcar como completada
+                    if i in st.session_state.preguntas_completadas:
+                        if st.button("Desmarcar", key=f"uncheck_{i}"):
+                            st.session_state.preguntas_completadas.remove(i)
+                    else:
+                        if st.button("Completada", key=f"check_{i}"):
+                            st.session_state.preguntas_completadas.add(i)
 
-        if st.button("LIMPIAR PREGUNTAS"):
-            st.session_state.preguntas = []
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("LIMPIAR PREGUNTAS"):
+                st.session_state.preguntas = []
+                st.session_state.preguntas_completadas = set()
+                st.success("Lista de preguntas limpiada exitosamente")
+
+    def mostrar_creditos(self):
+        st.markdown("""
+        <div class="credits">
+            <h3>Desarrollado por:</h3>
+            <p><strong>Ing. José Yván Chamache Chiong</strong></p>
+            <p>Lima, Perú - 2024</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     def run(self):
         self.cargar_logo()
@@ -237,6 +284,7 @@ class ControlParticipacion:
         self.mostrar_graficos()
         st.markdown("---")
         self.gestionar_preguntas()
+        self.mostrar_creditos()
 
 # Iniciar la aplicación
 if __name__ == "__main__":
