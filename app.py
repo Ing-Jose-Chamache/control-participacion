@@ -30,7 +30,7 @@ st.markdown("""
         position: absolute;
         top: 10px;
         left: 10px;
-        width: 25%;
+        width: 7.5%;
         z-index: 100;
     }
     .logo-container {
@@ -255,34 +255,63 @@ class ControlParticipacion:
 
     def gestionar_preguntas(self):
         st.markdown("### PREGUNTAS PLANIFICADAS")
-        col1, col2, col3 = st.columns([2, 1, 1])
         
+        # Sección para agregar preguntas manualmente
+        col1, col2 = st.columns([4, 1])
         with col1:
             nueva_pregunta = st.text_input("ESCRIBA UNA NUEVA PREGUNTA")
+            if nueva_pregunta and st.button("AGREGAR PREGUNTA"):
+                st.session_state.preguntas.append(nueva_pregunta)
+                st.success("Pregunta agregada exitosamente")
+        
+        # Sección para cargar preguntas desde archivo
         with col2:
-            if st.button("AGREGAR PREGUNTA"):
-                if nueva_pregunta:
-                    st.session_state.preguntas.append(nueva_pregunta)
-        with col3:
-            self.cargar_archivo_txt("preguntas")
+            if 'preguntas_cargadas' not in st.session_state:
+                st.session_state.preguntas_cargadas = False
+            
+            if not st.session_state.preguntas_cargadas:
+                archivo = st.file_uploader("CARGAR PREGUNTAS", type=['txt'])
+                if archivo is not None:
+                    try:
+                        contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
+                        contenido = [linea.strip() for linea in contenido if linea.strip()]
+                        st.session_state.preguntas.extend(contenido)
+                        st.session_state.preguntas_cargadas = True
+                        st.success("Preguntas cargadas exitosamente")
+                    except Exception as e:
+                        st.error(f"Error al cargar el archivo: {str(e)}")
 
-        for i, pregunta in enumerate(st.session_state.preguntas):
-            with st.container():
-                st.markdown(
-                    f'<div class="question-box{" question-completed" if i in st.session_state.preguntas_completadas else ""}">',
-                    unsafe_allow_html=True
-                )
-                cols = st.columns([4, 1])
-                with cols[0]:
-                    st.write(f"{i+1}. {pregunta}")
-                with cols[1]:
+        # Mostrar preguntas
+        if st.session_state.preguntas:
+            for i, pregunta in enumerate(st.session_state.preguntas):
+                with st.container():
                     if i in st.session_state.preguntas_completadas:
-                        if st.button("Desmarcar", key=f"uncheck_{i}"):
-                            st.session_state.preguntas_completadas.remove(i)
+                        st.markdown(
+                            f'<div class="question-box question-completed">',
+                            unsafe_allow_html=True
+                        )
                     else:
-                        if st.button("Completar", key=f"check_{i}"):
-                            st.session_state.preguntas_completadas.add(i)
-                st.markdown('</div>', unsafe_allow_html=True)
+                        st.markdown(
+                            f'<div class="question-box">',
+                            unsafe_allow_html=True
+                        )
+                    
+                    cols = st.columns([4, 1])
+                    with cols[0]:
+                        st.write(f"{i+1}. {pregunta}")
+                    with cols[1]:
+                        button_key = f"{'uncheck' if i in st.session_state.preguntas_completadas else 'check'}_{i}"
+                        if st.button(
+                            "Desmarcar" if i in st.session_state.preguntas_completadas else "Completar",
+                            key=button_key
+                        ):
+                            if i in st.session_state.preguntas_completadas:
+                                st.session_state.preguntas_completadas.remove(i)
+                            else:
+                                st.session_state.preguntas_completadas.add(i)
+                            st.rerun()
+                    
+                    st.markdown('</div>', unsafe_allow_html=True)
 
         if st.button("LIMPIAR PREGUNTAS"):
             st.session_state.preguntas = []
