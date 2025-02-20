@@ -1,9 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file
+import streamlit as st
 import pandas as pd
-import os
-
-app = Flask(__name__)
-app.secret_key = 'tu_clave_secreta'
 
 # Datos simulados de estudiantes
 datos = [
@@ -15,44 +11,42 @@ datos = [
     {'nombre': 'LUIS SARAVIA', 'participaciones': 1, 'nota': 2}
 ]
 
-@app.route('/')
-def index():
-    return render_template('index.html', estudiantes=datos)
+st.title('Control de Participación')
 
-@app.route('/agregar', methods=['POST'])
-def agregar_estudiante():
-    nombre = request.form['nombre']
+# Mostrar tabla de estudiantes
+df = pd.DataFrame(datos)
+st.dataframe(df)
+
+# Formulario para agregar estudiantes
+nombre = st.text_input('Nombre del estudiante')
+if st.button('Agregar Estudiante'):
     if nombre:
         datos.append({'nombre': nombre, 'participaciones': 0, 'nota': 0})
-        flash('Estudiante agregado correctamente.')
-    return redirect(url_for('index'))
+        st.success('Estudiante agregado correctamente.')
 
-@app.route('/incrementar/<nombre>')
-def incrementar(nombre):
-    for estudiante in datos:
-        if estudiante['nombre'] == nombre:
+# Incrementar y decrementar participaciones
+for estudiante in datos:
+    col1, col2, col3 = st.columns([3, 1, 1])
+    with col1:
+        st.write(estudiante['nombre'])
+    with col2:
+        if st.button(f"➕ {estudiante['nombre']}"):
             estudiante['participaciones'] += 1
             estudiante['nota'] += 1
-    return redirect(url_for('index'))
+    with col3:
+        if st.button(f"➖ {estudiante['nombre']}"):
+            if estudiante['participaciones'] > 0:
+                estudiante['participaciones'] -= 1
+                estudiante['nota'] -= 1
 
-@app.route('/decrementar/<nombre>')
-def decrementar(nombre):
-    for estudiante in datos:
-        if estudiante['nombre'] == nombre and estudiante['participaciones'] > 0:
-            estudiante['participaciones'] -= 1
-            estudiante['nota'] -= 1
-    return redirect(url_for('index'))
+# Cargar archivo TXT
+archivo = st.file_uploader('Cargar archivo TXT', type=['txt'])
+if archivo:
+    contenido = archivo.read().decode('utf-8').split('\n')
+    for linea in contenido:
+        if linea:
+            datos.append({'nombre': linea, 'participaciones': 0, 'nota': 0})
+    st.success('Archivo cargado correctamente.')
 
-@app.route('/cargar_txt', methods=['POST'])
-def cargar_txt():
-    archivo = request.files['archivo']
-    if archivo and archivo.filename.endswith('.txt'):
-        contenido = archivo.read().decode('utf-8').split('\n')
-        for linea in contenido:
-            if linea:
-                datos.append({'nombre': linea, 'participaciones': 0, 'nota': 0})
-        flash('Archivo cargado correctamente.')
-    return redirect(url_for('index'))
-
-if __name__ == '__main__':
-    app.run(debug=True)
+# Mostrar gráfico de barras
+st.bar_chart(pd.DataFrame(datos)['participaciones'])
