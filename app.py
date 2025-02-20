@@ -4,6 +4,7 @@ import plotly.express as px
 from datetime import datetime
 import base64
 from io import StringIO
+import time
 
 # Configuración de la página
 st.set_page_config(page_title="CONTROL DE PARTICIPACIÓN", layout="wide")
@@ -302,7 +303,8 @@ class ControlParticipacion:
         with col2:
             if st.button("AGREGAR ESTUDIANTE"):
                 if nuevo_estudiante:
-                    if nuevo_estudiante not in st.session_state.estudiantes['Nombre'].values:
+                    estudiantes_actuales = st.session_state.estudiantes['Nombre'].values
+                    if nuevo_estudiante not in estudiantes_actuales:
                         nuevo_df = pd.DataFrame({
                             'Nombre': [nuevo_estudiante],
                             'Participaciones': [0],
@@ -313,9 +315,10 @@ class ControlParticipacion:
                             ignore_index=True
                         )
                         st.success("Estudiante agregado con éxito")
-                        st.rerun()
                     else:
-                        st.warning("Este estudiante ya existe"))
+                        st.write("Este estudiante ya existe")
+                    time.sleep(0.1)
+                    st.rerun())
                     
                     # Columna participaciones y nota
                     with cols[1]:
