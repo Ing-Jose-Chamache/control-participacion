@@ -25,17 +25,45 @@ st.markdown("""
         text-align: center;
         font-weight: bold;
         font-size: 2.5em;
-        margin-top: 1rem;
+    }
+    .logo-upload {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 25%;
+        z-index: 100;
     }
     .logo-container {
         text-align: center;
         margin-bottom: 1rem;
     }
-    .logo-upload {
-        max-width: 25%;
-        position: absolute;
-        top: 10px;
-        left: 10px;
+    .student-section {
+        font-size: 1.1em;
+    }
+    .question-box {
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .question-completed {
+        text-decoration: line-through;
+        color: #6c757d;
+    }
+    .student-row {
+        background-color: #ffffff;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 5px;
+        border: 1px solid #dee2e6;
+    }
+    .student-controls {
+        display: flex;
+        gap: 10px;
     }
     .credits {
         text-align: center;
@@ -43,29 +71,6 @@ st.markdown("""
         background-color: #f0f2f6;
         border-radius: 10px;
         margin-top: 30px;
-    }
-    .completed {
-        text-decoration: line-through;
-        color: #808080;
-    }
-    .student-table {
-        font-size: 1.1em;
-    }
-    .question-card {
-        background-color: #ffffff;
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #e0e0e0;
-        margin-bottom: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .question-card:hover {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    .student-controls {
-        display: flex;
-        gap: 10px;
-        margin-top: 5px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -87,7 +92,9 @@ class ControlParticipacion:
 
     def cargar_logo(self):
         with st.container():
-            logo_file = st.file_uploader("LOGO", type=['png', 'jpg', 'jpeg'], key="logo_upload")
+            st.markdown('<div class="logo-upload">', unsafe_allow_html=True)
+            logo_file = st.file_uploader("LOGO", type=['png', 'jpg', 'jpeg'])
+            st.markdown('</div>', unsafe_allow_html=True)
             if logo_file is not None:
                 st.session_state.logo = base64.b64encode(logo_file.read()).decode()
 
@@ -101,10 +108,60 @@ class ControlParticipacion:
         
         st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
 
+    def cargar_archivo_txt(self, tipo):
+        archivo = st.file_uploader(f"CARGAR ARCHIVO {tipo.upper()}", type=['txt'])
+        if archivo is not None:
+            try:
+                contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
+                contenido = [linea.strip() for linea in contenido if linea.strip()]
+                
+                if tipo == "estudiantes":
+                    for estudiante in contenido:
+                        if estudiante not in st.session_state.estudiantes['Nombre'].values:
+                            nuevo_df = pd.DataFrame({
+                                'Nombre': [estudiante],
+                                'Participaciones': [0],
+                                'Puntaje': [0]
+                            })
+                            st.session_state.estudiantes = pd.concat(
+                                [st.session_state.estudiantes, nuevo_df],
+                                ignore_index=True
+                            )
+                    st.success("Estudiantes cargados exitosamente")
+                
+                elif tipo == "preguntas":
+                    st.session_state.preguntas.extend(contenido)
+                    st.success("Preguntas cargadas exitosamente")
+            except Exception as e:
+                st.error(f"Error al cargar el archivo: {str(e)}")
+
     def eliminar_estudiante(self, nombre):
         st.session_state.estudiantes = st.session_state.estudiantes[
             st.session_state.estudiantes['Nombre'] != nombre
         ].reset_index(drop=True)
+
+    def agregar_estudiante(self):
+        col1, col2, col3 = st.columns([2, 1, 1])
+        with col1:
+            nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
+        with col2:
+            if st.button("AGREGAR ESTUDIANTE"):
+                if nuevo_estudiante:
+                    if nuevo_estudiante not in st.session_state.estudiantes['Nombre'].values:
+                        nuevo_df = pd.DataFrame({
+                            'Nombre': [nuevo_estudiante],
+                            'Participaciones': [0],
+                            'Puntaje': [0]
+                        })
+                        st.session_state.estudiantes = pd.concat(
+                            [st.session_state.estudiantes, nuevo_df],
+                            ignore_index=True
+                        )
+                        st.success(f"Estudiante {nuevo_estudiante} agregado con éxito")
+                    else:
+                        st.error("Este estudiante ya existe")
+        with col3:
+            self.cargar_archivo_txt("estudiantes")
 
     def mostrar_estudiantes(self):
         col1, col2 = st.columns([3, 1])
@@ -119,7 +176,8 @@ class ControlParticipacion:
 
         for _, estudiante in st.session_state.estudiantes.iterrows():
             with st.container():
-                cols = st.columns([3, 1, 1, 1, 1, 1])
+                st.markdown(f'<div class="student-row">', unsafe_allow_html=True)
+                cols = st.columns([3, 2, 2, 1, 1, 1])
                 with cols[0]:
                     st.write(f"**{estudiante['Nombre']}**")
                 with cols[1]:
@@ -149,37 +207,13 @@ class ControlParticipacion:
                     if st.button("🗑️", key=f"delete_{estudiante['Nombre']}"):
                         self.eliminar_estudiante(estudiante['Nombre'])
                         st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
 
-    def gestionar_preguntas(self):
-        st.markdown("### PREGUNTAS PLANIFICADAS")
-        
-        for i, pregunta in enumerate(st.session_state.preguntas):
-            with st.container():
-                st.markdown(f"""
-                    <div class="question-card" style="background-color: {'#f8f9fa' if i in st.session_state.preguntas_completadas else '#ffffff'}">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="{'text-decoration: line-through; color: #808080;' if i in st.session_state.preguntas_completadas else ''}">
-                                {i+1}. {pregunta}
-                            </div>
-                            <div>
-                                <button onclick="handleComplete({i})" style="margin-right: 10px;">
-                                    {'✓' if i in st.session_state.preguntas_completadas else '○'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                col1, col2 = st.columns([4, 1])
-                with col2:
-                    if i in st.session_state.preguntas_completadas:
-                        if st.button("Desmarcar", key=f"uncheck_{i}"):
-                            st.session_state.preguntas_completadas.remove(i)
-                            st.rerun()
-                    else:
-                        if st.button("Completar", key=f"check_{i}"):
-                            st.session_state.preguntas_completadas.add(i)
-                            st.rerun()
+        if st.button("LIMPIAR LISTA DE ESTUDIANTES"):
+            st.session_state.estudiantes = pd.DataFrame(
+                columns=['Nombre', 'Participaciones', 'Puntaje']
+            )
+            st.success("Lista de estudiantes limpiada exitosamente")
 
     def mostrar_graficos(self):
         if not st.session_state.estudiantes.empty:
@@ -196,9 +230,7 @@ class ControlParticipacion:
                 )
                 fig_bar.update_layout(
                     title_x=0.5,
-                    title_font_size=20,
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)'
+                    title_font_size=20
                 )
                 st.plotly_chart(fig_bar, use_container_width=True)
             
@@ -221,18 +253,43 @@ class ControlParticipacion:
                     )
                     st.plotly_chart(fig_pie, use_container_width=True)
 
-    def run(self):
-        st.markdown('<div class="logo-upload">', unsafe_allow_html=True)
-        self.cargar_logo()
-        st.markdown('</div>', unsafe_allow_html=True)
+    def gestionar_preguntas(self):
+        st.markdown("### PREGUNTAS PLANIFICADAS")
+        col1, col2, col3 = st.columns([2, 1, 1])
         
-        self.mostrar_header()
-        self.mostrar_estudiantes()
-        st.markdown("---")
-        self.mostrar_graficos()
-        st.markdown("---")
-        self.gestionar_preguntas()
-        
+        with col1:
+            nueva_pregunta = st.text_input("ESCRIBA UNA NUEVA PREGUNTA")
+        with col2:
+            if st.button("AGREGAR PREGUNTA"):
+                if nueva_pregunta:
+                    st.session_state.preguntas.append(nueva_pregunta)
+        with col3:
+            self.cargar_archivo_txt("preguntas")
+
+        for i, pregunta in enumerate(st.session_state.preguntas):
+            with st.container():
+                st.markdown(
+                    f'<div class="question-box{" question-completed" if i in st.session_state.preguntas_completadas else ""}">',
+                    unsafe_allow_html=True
+                )
+                cols = st.columns([4, 1])
+                with cols[0]:
+                    st.write(f"{i+1}. {pregunta}")
+                with cols[1]:
+                    if i in st.session_state.preguntas_completadas:
+                        if st.button("Desmarcar", key=f"uncheck_{i}"):
+                            st.session_state.preguntas_completadas.remove(i)
+                    else:
+                        if st.button("Completar", key=f"check_{i}"):
+                            st.session_state.preguntas_completadas.add(i)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+        if st.button("LIMPIAR PREGUNTAS"):
+            st.session_state.preguntas = []
+            st.session_state.preguntas_completadas = set()
+            st.success("Lista de preguntas limpiada exitosamente")
+
+    def mostrar_creditos(self):
         st.markdown("""
         <div class="credits">
             <h3>Desarrollado por:</h3>
@@ -240,6 +297,17 @@ class ControlParticipacion:
             <p>Lima, Perú - 2024</p>
         </div>
         """, unsafe_allow_html=True)
+
+    def run(self):
+        self.cargar_logo()
+        self.mostrar_header()
+        self.agregar_estudiante()
+        st.markdown("---")
+        self.mostrar_estudiantes()
+        self.mostrar_graficos()
+        st.markdown("---")
+        self.gestionar_preguntas()
+        self.mostrar_creditos()
 
 # Iniciar la aplicación
 if __name__ == "__main__":
