@@ -1,8 +1,89 @@
-import streamlit as st
+def generar_reporte_pdf(self):
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Título
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            spaceAfter=30,
+            alignment=1
+        )
+        elements.append(Paragraph("REPORTE DE PARTICIPACIONES", title_style))
+        elements.append(Spacer(1, 20))
+        
+        # Fecha
+        fecha = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        elements.append(Paragraph(f"Fecha: {fecha}", styles['Normal']))
+        elements.append(Spacer(1, 20))
+        
+        # Datos de estudiantes
+        elements.append(Paragraph("Lista de Estudiantes", styles['Heading2']))
+        if not st.session_state.estudiantes.empty:
+            data = [['Nombre', 'Participaciones', 'Puntaje']]
+            for _, row in st.session_state.estudiantes.iterrows():
+                data.append([
+                    row['Nombre'],
+                    f"{row['Participaciones']}/{st.session_state.participaciones_esperadas}",
+                    f"{row['Puntaje']:.1f}"
+                ])
+            
+            table = Table(data)
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            elements.append(table)
+            elements.append(Spacer(1, 20))
+        
+        # Preguntas
+        elements.append(Paragraph("Preguntas Planificadas", styles['Heading2']))
+        if st.session_state.preguntas:
+            for i, pregunta in enumerate(st.session_state.preguntas, 1):
+                status = "✓" if i-1 in st.session_state.preguntas_completadas else "○"
+                elements.append(Paragraph(
+                    f"{i}. {pregunta} [{status}]",
+                    styles['Normal']
+                ))
+                elements.append(Spacer(1, 5))
+        
+        # Pie de página
+        elements.append(Spacer(1, 30))
+        elements.append(Paragraph(
+            "Generado por: Control de Participación",
+            styles['Normal']
+        ))
+        
+        # Construir PDF
+        doc.build(elements)
+        pdf = buffer.getvalue()
+        buffer.close()
+        return pdfimport streamlit as st
 import pandas as pd
 import plotly.express as px
 import base64
-from io import StringIO
+from io import StringIO, BytesIO
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from datetime import datetime
+
+# Resto de las importaciones...
 
 # Configuración de la página
 st.set_page_config(page_title="CONTROL DE PARTICIPACIÓN", layout="wide")
@@ -55,9 +136,10 @@ class ControlParticipacion:
             st.session_state.logo = None
 
     def cargar_logo(self):
-        if st.button("📷 LOGO", key="btn_logo"):
-            uploaded_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'])
-            if uploaded_file:
+        col1, col2, col3 = st.columns([1, 4, 1])
+        with col1:
+            uploaded_file = st.file_uploader("LOGO", type=['png', 'jpg', 'jpeg'])
+            if uploaded_file is not None:
                 st.session_state.logo = base64.b64encode(uploaded_file.getvalue()).decode()
 
     def mostrar_header(self):
@@ -234,6 +316,17 @@ class ControlParticipacion:
         self.mostrar_graficos()
         st.markdown("---")
         self.gestionar_preguntas()
+        
+        # Botón para descargar reporte
+        if st.button("📄 DESCARGAR REPORTE PDF"):
+            pdf = self.generar_reporte_pdf()
+            st.download_button(
+                label="⬇️ DESCARGAR REPORTE",
+                data=pdf,
+                file_name=f"reporte_participaciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                mime="application/pdf"
+            )
+        
         st.markdown("""
             <div style="text-align: center; padding: 20px; margin-top: 30px;">
                 <h3>Desarrollado por:</h3>
