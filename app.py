@@ -129,12 +129,10 @@ class ControlParticipacion:
 
     def cargar_logo(self):
         with st.container():
-            st.markdown('<div class="logo-upload">', unsafe_allow_html=True)
-            logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'])
-            st.markdown('<style>div[data-testid="stFileUploader"] > div > small {display: none;}</style>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-            if logo_file is not None:
-                st.session_state.logo = base64.b64encode(logo_file.read()).decode()
+            if st.button("LOGO", use_container_width=False):
+                file = st.file_uploader("", type=['png', 'jpg', 'jpeg'])
+                if file is not None:
+                    st.session_state.logo = base64.b64encode(file.read()).decode()
 
     def mostrar_header(self):
         if st.session_state.logo:
@@ -237,6 +235,96 @@ class ControlParticipacion:
                     
                     # Botones de control
                     with cols[2]:
+                        if st.button("+1", key=f"plus_{idx}", help="Aumentar participación"):
+                            participaciones = st.session_state.estudiantes.at[idx, 'Participaciones'] + 1
+                            st.session_state.estudiantes.at[idx, 'Participaciones'] = participaciones
+                            st.session_state.estudiantes.at[idx, 'Puntaje'] = min(
+                                20,
+                                (participaciones / st.session_state.participaciones_esperadas) * 20
+                            )
+                            st.rerun()
+                    
+                    with cols[3]:
+                        if st.button("-1", key=f"minus_{idx}", help="Disminuir participación"):
+                            if st.session_state.estudiantes.at[idx, 'Participaciones'] > 0:
+                                participaciones = st.session_state.estudiantes.at[idx, 'Participaciones'] - 1
+                                st.session_state.estudiantes.at[idx, 'Participaciones'] = participaciones
+                                st.session_state.estudiantes.at[idx, 'Puntaje'] = min(
+                                    20,
+                                    (participaciones / st.session_state.participaciones_esperadas) * 20
+                                )
+                                st.rerun()
+                    
+                    with cols[4]:
+                        if st.button("❌", key=f"delete_{idx}"):
+                            st.session_state.estudiantes = st.session_state.estudiantes.drop(idx).reset_index(drop=True)
+                            st.rerun()
+                    
+                    st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Botones de control general
+            if not st.session_state.estudiantes.empty:
+                cols = st.columns([1, 1])
+                with cols[0]:
+                    if st.button("ELIMINAR TODOS LOS ESTUDIANTES", type="primary"):
+                        st.session_state.estudiantes = pd.DataFrame(
+                            columns=['Nombre', 'Participaciones', 'Puntaje']
+                        )
+                        st.rerun()
+                with cols[1]:
+                    archivo = st.file_uploader("CARGAR ESTUDIANTES", type=['txt'])
+                    if archivo is not None:
+                        try:
+                            contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
+                            nuevos_estudiantes = []
+                            for estudiante in contenido:
+                                if estudiante.strip() and estudiante not in st.session_state.estudiantes['Nombre'].values:
+                                    nuevos_estudiantes.append({
+                                        'Nombre': estudiante.strip(),
+                                        'Participaciones': 0,
+                                        'Puntaje': 0
+                                    })
+                            if nuevos_estudiantes:
+                                nuevo_df = pd.DataFrame(nuevos_estudiantes)
+                                st.session_state.estudiantes = pd.concat(
+                                    [st.session_state.estudiantes, nuevo_df],
+                                    ignore_index=True
+                                )
+                                st.success("Estudiantes cargados exitosamente")
+                                st.rerun()
+                        except Exception as e:
+                            st.error(f"Error al cargar el archivo: {str(e)}")
+
+    def agregar_estudiante(self):
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
+        with col2:
+            if st.button("AGREGAR ESTUDIANTE"):
+                if nuevo_estudiante:
+                    if nuevo_estudiante not in st.session_state.estudiantes['Nombre'].values:
+                        nuevo_df = pd.DataFrame({
+                            'Nombre': [nuevo_estudiante],
+                            'Participaciones': [0],
+                            'Puntaje': [0]
+                        })
+                        st.session_state.estudiantes = pd.concat(
+                            [st.session_state.estudiantes, nuevo_df],
+                            ignore_index=True
+                        )
+                        st.success(f"Estudiante {nuevo_estudiante} agregado con éxito")
+                    else:
+                        st.error("Este estudiante ya existe"))
+                    
+                    # Columna participaciones y nota
+                    with cols[1]:
+                        st.markdown(
+                            f"<div style='font-size:0.9em'>Part: {estudiante['Participaciones']}/{st.session_state.participaciones_esperadas} | Nota: {estudiante['Puntaje']:.1f}</div>",
+                            unsafe_allow_html=True
+                        )
+                    
+                    # Botones de control
+                    with cols[2]:
                         if st.button("+1", key=f"plus_{estudiante['Nombre']}", help="Aumentar participación"):
                             participaciones = st.session_state.estudiantes.at[idx, 'Participaciones'] + 1
                             st.session_state.estudiantes.at[idx, 'Participaciones'] = participaciones
@@ -319,7 +407,6 @@ class ControlParticipacion:
     def gestionar_preguntas(self):
         st.markdown("### PREGUNTAS PLANIFICADAS")
         
-        # Sección para agregar preguntas manualmente
         col1, col2 = st.columns([4, 1])
         with col1:
             nueva_pregunta = st.text_input("ESCRIBA UNA NUEVA PREGUNTA")
@@ -327,22 +414,16 @@ class ControlParticipacion:
                 st.session_state.preguntas.append(nueva_pregunta)
                 st.success("Pregunta agregada exitosamente")
         
-        # Sección para cargar preguntas desde archivo
         with col2:
-            if 'preguntas_cargadas' not in st.session_state:
-                st.session_state.preguntas_cargadas = False
-            
-            if not st.session_state.preguntas_cargadas:
-                archivo = st.file_uploader("CARGAR PREGUNTAS", type=['txt'])
-                if archivo is not None:
-                    try:
-                        contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
-                        contenido = [linea.strip() for linea in contenido if linea.strip()]
-                        st.session_state.preguntas.extend(contenido)
-                        st.session_state.preguntas_cargadas = True
-                        st.success("Preguntas cargadas exitosamente")
-                    except Exception as e:
-                        st.error(f"Error al cargar el archivo: {str(e)}")
+            archivo = st.file_uploader("CARGAR PREGUNTAS", type=['txt'])
+            if archivo is not None:
+                try:
+                    contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
+                    contenido = [linea.strip() for linea in contenido if linea.strip()]
+                    st.session_state.preguntas.extend(contenido)
+                    st.success("Preguntas cargadas exitosamente")
+                except Exception as e:
+                    st.error(f"Error al cargar el archivo: {str(e)}")
 
         # Mostrar preguntas
         if st.session_state.preguntas:
@@ -353,9 +434,8 @@ class ControlParticipacion:
                     
                     st.markdown(f'<div class="{clase_css}">', unsafe_allow_html=True)
                     
-                    cols = st.columns([4, 1])
+                    cols = st.columns([3, 1, 1])
                     with cols[0]:
-                        # Aplicar formato en negrita y tachado si está completada
                         if esta_completada:
                             st.markdown(f"<p style='text-decoration: line-through; font-weight: bold;'>{i+1}. {pregunta}</p>", unsafe_allow_html=True)
                         else:
@@ -371,7 +451,20 @@ class ControlParticipacion:
                                 st.session_state.preguntas_completadas.add(i)
                             st.rerun()
                     
+                    with cols[2]:
+                        if st.button("❌", key=f"delete_pregunta_{i}"):
+                            st.session_state.preguntas.pop(i)
+                            if i in st.session_state.preguntas_completadas:
+                                st.session_state.preguntas_completadas.remove(i)
+                            st.rerun()
+                    
                     st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Botón para eliminar todas las preguntas
+            if st.button("ELIMINAR TODAS LAS PREGUNTAS", type="primary"):
+                st.session_state.preguntas = []
+                st.session_state.preguntas_completadas = set()
+                st.rerun()
 
         if st.button("LIMPIAR PREGUNTAS"):
             st.session_state.preguntas = []
