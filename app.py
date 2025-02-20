@@ -46,7 +46,7 @@ class ControlParticipacion:
         if 'estudiantes' not in st.session_state:
             st.session_state.estudiantes = pd.DataFrame(columns=['Nombre', 'Participaciones', 'Puntaje'])
         if 'participaciones_esperadas' not in st.session_state:
-            st.session_state.participaciones_esperadas = 10
+            st.session_state.participaciones_esperadas = 5
         if 'preguntas' not in st.session_state:
             st.session_state.preguntas = []
         if 'preguntas_completadas' not in st.session_state:
@@ -55,11 +55,10 @@ class ControlParticipacion:
             st.session_state.logo = None
 
     def cargar_logo(self):
-        st.markdown('<div class="logo-upload">', unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'], key="logo_upload")
-        st.markdown('</div>', unsafe_allow_html=True)
-        if uploaded_file:
-            st.session_state.logo = base64.b64encode(uploaded_file.getvalue()).decode()
+        if st.button("📷 LOGO", key="btn_logo"):
+            uploaded_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'])
+            if uploaded_file:
+                st.session_state.logo = base64.b64encode(uploaded_file.getvalue()).decode()
 
     def mostrar_header(self):
         if st.session_state.logo:
@@ -197,22 +196,13 @@ class ControlParticipacion:
                 st.session_state.preguntas.append(nueva_pregunta)
                 st.rerun()
 
-        # Cargar preguntas desde archivo
-        uploaded_file = st.file_uploader("CARGAR PREGUNTAS", type=['txt'])
-        if uploaded_file:
-            contenido = StringIO(uploaded_file.getvalue().decode("utf-8")).read().splitlines()
-            for pregunta in contenido:
-                if pregunta.strip():
-                    st.session_state.preguntas.append(pregunta.strip())
-            st.rerun()
-
         # Mostrar y gestionar preguntas
         for i, pregunta in enumerate(st.session_state.preguntas):
             with st.container():
                 cols = st.columns([3, 1, 1])
                 with cols[0]:
                     if i in st.session_state.preguntas_completadas:
-                        st.markdown(f"<p class='question-completed'>{i+1}. {pregunta}</p>", unsafe_allow_html=True)
+                        st.markdown(f"<p style='text-decoration: line-through; font-weight: bold; color: #6c757d;'>{i+1}. {pregunta}</p>", unsafe_allow_html=True)
                     else:
                         st.write(f"{i+1}. {pregunta}")
                 with cols[1]:
@@ -232,7 +222,7 @@ class ControlParticipacion:
 
         # Botón para eliminar todas las preguntas
         if st.session_state.preguntas:
-            if st.button("ELIMINAR TODAS LAS PREGUNTAS"):
+            if st.button("❌ ELIMINAR TODAS LAS PREGUNTAS", type="primary"):
                 st.session_state.preguntas = []
                 st.session_state.preguntas_completadas = set()
                 st.rerun()
