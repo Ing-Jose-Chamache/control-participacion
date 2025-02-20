@@ -312,9 +312,10 @@ class ControlParticipacion:
                             [st.session_state.estudiantes, nuevo_df],
                             ignore_index=True
                         )
-                        st.success(f"Estudiante {nuevo_estudiante} agregado con éxito")
+                        st.success("Estudiante agregado con éxito")
+                        st.rerun()
                     else:
-                        st.error("Este estudiante ya existe"))
+                        st.warning("Este estudiante ya existe"))
                     
                     # Columna participaciones y nota
                     with cols[1]:
