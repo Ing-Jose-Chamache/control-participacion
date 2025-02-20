@@ -28,10 +28,24 @@ st.markdown("""
     }
     .logo-upload {
         position: absolute;
-        top: 10px;
-        left: 10px;
-        width: 7.5%;
+        top: 5px;
+        left: 5px;
+        width: 150px;
         z-index: 100;
+    }
+    .logo-upload .stUploadUploader {
+        width: 150px !important;
+    }
+    .logo-upload label {
+        font-size: 0.8em;
+    }
+    /* Hacer el área de carga más compacta */
+    .logo-upload div[data-testid="stFileUploader"] {
+        width: 150px !important;
+        padding: 0.5rem !important;
+    }
+    .logo-upload div[data-testid="stFileUploader"] small {
+        font-size: 0.6em;
     }
     .logo-container {
         text-align: center;
@@ -93,7 +107,8 @@ class ControlParticipacion:
     def cargar_logo(self):
         with st.container():
             st.markdown('<div class="logo-upload">', unsafe_allow_html=True)
-            logo_file = st.file_uploader("LOGO", type=['png', 'jpg', 'jpeg'])
+            logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'])
+            st.markdown('<style>div[data-testid="stFileUploader"] > div > small {display: none;}</style>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
             if logo_file is not None:
                 st.session_state.logo = base64.b64encode(logo_file.read()).decode()
