@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 import base64
 from io import StringIO
-from fpdf import FPDF
 from datetime import datetime
 
 # Configuración de la página
@@ -60,53 +59,24 @@ class ControlParticipacion:
             """, unsafe_allow_html=True)
         st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
 
-    def generar_pdf(self):
-        pdf = FPDF()
-        pdf.add_page()
+    def generar_reporte_csv(self):
+        """Genera un reporte en formato CSV."""
+        output = StringIO()
+        output.write("REPORTE DE PARTICIPACIONES\n")
+        output.write(f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n\n")
         
-        # Configuración
-        pdf.set_font('Arial', 'B', 16)
-        pdf.cell(190, 10, 'REPORTE DE PARTICIPACIONES', 0, 1, 'C')
-        pdf.ln(10)
-        
-        # Fecha
-        pdf.set_font('Arial', '', 12)
-        pdf.cell(190, 10, f'Fecha: {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}', 0, 1)
-        pdf.ln(10)
-        
-        # Lista de estudiantes
-        pdf.set_font('Arial', 'B', 14)
-        pdf.cell(190, 10, 'Lista de Estudiantes', 0, 1)
-        pdf.ln(5)
-        
-        # Encabezados de tabla
-        pdf.set_font('Arial', 'B', 12)
-        pdf.cell(70, 10, 'Nombre', 1)
-        pdf.cell(60, 10, 'Participaciones', 1)
-        pdf.cell(60, 10, 'Puntaje', 1)
-        pdf.ln()
-        
-        # Datos de estudiantes
-        pdf.set_font('Arial', '', 12)
+        # Escribir información de estudiantes
+        output.write("LISTA DE ESTUDIANTES\n")
+        output.write("Nombre,Participaciones,Puntaje\n")
         for _, estudiante in st.session_state.estudiantes.iterrows():
-            pdf.cell(70, 10, estudiante['Nombre'], 1)
-            pdf.cell(60, 10, f"{estudiante['Participaciones']}/{st.session_state.participaciones_esperadas}", 1)
-            pdf.cell(60, 10, f"{estudiante['Puntaje']:.1f}", 1)
-            pdf.ln()
+            output.write(f"{estudiante['Nombre']},{estudiante['Participaciones']}/{st.session_state.participaciones_esperadas},{estudiante['Puntaje']:.1f}\n")
         
-        pdf.ln(10)
-        
-        # Lista de preguntas
-        pdf.set_font('Arial', 'B', 14)
-        pdf.cell(190, 10, 'Preguntas Planificadas', 0, 1)
-        pdf.ln(5)
-        
-        pdf.set_font('Arial', '', 12)
+        output.write("\nPREGUNTAS PLANIFICADAS\n")
         for i, pregunta in enumerate(st.session_state.preguntas, 1):
-            status = "✓" if i-1 in st.session_state.preguntas_completadas else "○"
-            pdf.multi_cell(190, 10, f"{i}. {pregunta} [{status}]", 0)
+            status = "Completada" if i-1 in st.session_state.preguntas_completadas else "Pendiente"
+            output.write(f"{i}. {pregunta} [{status}]\n")
         
-        return pdf.output(dest='S').encode('latin1')
+        return output.getvalue().encode('utf-8')
 
     def mostrar_estudiantes(self):
         col1, col2 = st.columns([3, 1])
@@ -261,13 +231,14 @@ class ControlParticipacion:
         self.gestionar_preguntas()
         
         # Botón para descargar reporte
-        if st.button("📄 DESCARGAR REPORTE PDF"):
-            pdf_data = self.generar_pdf()
+        if st.button("📄 DESCARGAR REPORTE"):
+            csv_data = self.generar_reporte_csv()
+            fecha = datetime.now().strftime('%Y%m%d_%H%M%S')
             st.download_button(
-                label="⬇️ DESCARGAR PDF",
-                data=pdf_data,
-                file_name=f"reporte_participaciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                mime="application/pdf"
+                label="⬇️ DESCARGAR REPORTE CSV",
+                data=csv_data,
+                file_name=f"reporte_participaciones_{fecha}.csv",
+                mime="text/csv"
             )
         
         st.markdown("""
