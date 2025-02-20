@@ -66,7 +66,9 @@ st.markdown("""
     }
     .question-completed {
         text-decoration: line-through;
+        font-weight: bold;
         color: #6c757d;
+        background-color: #e9ecef;
     }
     .student-row {
         background-color: #ffffff;
@@ -75,6 +77,17 @@ st.markdown("""
         margin-bottom: 3px;
         border: 1px solid #dee2e6;
         font-size: 0.9em;
+    }
+    .delete-button {
+        color: white;
+        background-color: #dc3545;
+        border: none;
+        border-radius: 4px;
+        padding: 2px 8px;
+        cursor: pointer;
+    }
+    .delete-button:hover {
+        background-color: #c82333;
     }
     .student-controls {
         display: flex;
@@ -161,9 +174,12 @@ class ControlParticipacion:
                 st.error(f"Error al cargar el archivo: {str(e)}")
 
     def eliminar_estudiante(self, nombre):
-        st.session_state.estudiantes = st.session_state.estudiantes[
-            st.session_state.estudiantes['Nombre'] != nombre
-        ].reset_index(drop=True)
+        if nombre in st.session_state.estudiantes['Nombre'].values:
+            st.session_state.estudiantes = st.session_state.estudiantes[
+                st.session_state.estudiantes['Nombre'] != nombre
+            ].reset_index(drop=True)
+            return True
+        return False
 
     def agregar_estudiante(self):
         col1, col2, col3 = st.columns([2, 1, 1])
@@ -244,9 +260,11 @@ class ControlParticipacion:
                                 st.rerun()
                     
                     with cols[4]:
-                        if st.button("🗑️", key=f"delete_{estudiante['Nombre']}", help="Eliminar estudiante"):
-                            self.eliminar_estudiante(estudiante['Nombre'])
-                            st.rerun()
+                        if st.button("Eliminar", key=f"delete_{estudiante['Nombre']}", 
+                                   help="Eliminar estudiante", type="primary"):
+                            if self.eliminar_estudiante(estudiante['Nombre']):
+                                st.success(f"Estudiante {estudiante['Nombre']} eliminado exitosamente")
+                                st.rerun()
                     
                     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -326,27 +344,24 @@ class ControlParticipacion:
         if st.session_state.preguntas:
             for i, pregunta in enumerate(st.session_state.preguntas):
                 with st.container():
-                    if i in st.session_state.preguntas_completadas:
-                        st.markdown(
-                            f'<div class="question-box question-completed">',
-                            unsafe_allow_html=True
-                        )
-                    else:
-                        st.markdown(
-                            f'<div class="question-box">',
-                            unsafe_allow_html=True
-                        )
+                    esta_completada = i in st.session_state.preguntas_completadas
+                    clase_css = "question-box" + (" question-completed" if esta_completada else "")
+                    
+                    st.markdown(f'<div class="{clase_css}">', unsafe_allow_html=True)
                     
                     cols = st.columns([4, 1])
                     with cols[0]:
-                        st.write(f"{i+1}. {pregunta}")
+                        # Aplicar formato en negrita y tachado si está completada
+                        if esta_completada:
+                            st.markdown(f"<p style='text-decoration: line-through; font-weight: bold;'>{i+1}. {pregunta}</p>", unsafe_allow_html=True)
+                        else:
+                            st.write(f"{i+1}. {pregunta}")
+                    
                     with cols[1]:
-                        button_key = f"{'uncheck' if i in st.session_state.preguntas_completadas else 'check'}_{i}"
-                        if st.button(
-                            "Desmarcar" if i in st.session_state.preguntas_completadas else "Completar",
-                            key=button_key
-                        ):
-                            if i in st.session_state.preguntas_completadas:
+                        button_label = "Desmarcar" if esta_completada else "Completar"
+                        button_type = "secondary" if esta_completada else "primary"
+                        if st.button(button_label, key=f"complete_{i}", type=button_type):
+                            if esta_completada:
                                 st.session_state.preguntas_completadas.remove(i)
                             else:
                                 st.session_state.preguntas_completadas.add(i)
