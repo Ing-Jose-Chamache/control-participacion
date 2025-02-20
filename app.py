@@ -219,10 +219,10 @@ class ControlParticipacion:
         container = st.container()
         
         with container:
-            for _, estudiante in st.session_state.estudiantes.iterrows():
+            for idx, estudiante in st.session_state.estudiantes.iterrows():
                 with st.container():
                     st.markdown(f'<div class="student-row">', unsafe_allow_html=True)
-                    cols = st.columns([2, 2, 1, 1, 1, 1])
+                    cols = st.columns([2, 2, 1, 1, 1])
                     
                     # Columna nombre
                     with cols[0]:
@@ -238,10 +238,9 @@ class ControlParticipacion:
                     # Botones de control
                     with cols[2]:
                         if st.button("+1", key=f"plus_{estudiante['Nombre']}", help="Aumentar participación"):
-                            idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
-                            participaciones = st.session_state.estudiantes.loc[idx, 'Participaciones'] + 1
-                            st.session_state.estudiantes.loc[idx, 'Participaciones'] = participaciones
-                            st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(
+                            participaciones = st.session_state.estudiantes.at[idx, 'Participaciones'] + 1
+                            st.session_state.estudiantes.at[idx, 'Participaciones'] = participaciones
+                            st.session_state.estudiantes.at[idx, 'Puntaje'] = min(
                                 20,
                                 (participaciones / st.session_state.participaciones_esperadas) * 20
                             )
@@ -249,24 +248,29 @@ class ControlParticipacion:
                     
                     with cols[3]:
                         if st.button("-1", key=f"minus_{estudiante['Nombre']}", help="Disminuir participación"):
-                            idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
-                            if st.session_state.estudiantes.loc[idx, 'Participaciones'] > 0:
-                                participaciones = st.session_state.estudiantes.loc[idx, 'Participaciones'] - 1
-                                st.session_state.estudiantes.loc[idx, 'Participaciones'] = participaciones
-                                st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(
+                            if st.session_state.estudiantes.at[idx, 'Participaciones'] > 0:
+                                participaciones = st.session_state.estudiantes.at[idx, 'Participaciones'] - 1
+                                st.session_state.estudiantes.at[idx, 'Participaciones'] = participaciones
+                                st.session_state.estudiantes.at[idx, 'Puntaje'] = min(
                                     20,
                                     (participaciones / st.session_state.participaciones_esperadas) * 20
                                 )
                                 st.rerun()
                     
                     with cols[4]:
-                        if st.button("Eliminar", key=f"delete_{estudiante['Nombre']}", 
-                                   help="Eliminar estudiante", type="primary"):
-                            if self.eliminar_estudiante(estudiante['Nombre']):
-                                st.success(f"Estudiante {estudiante['Nombre']} eliminado exitosamente")
-                                st.rerun()
+                        if st.button("❌", key=f"delete_{idx}"):
+                            st.session_state.estudiantes = st.session_state.estudiantes.drop(idx).reset_index(drop=True)
+                            st.rerun()
                     
                     st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Botón para limpiar lista de estudiantes
+            if not st.session_state.estudiantes.empty:
+                if st.button("LIMPIAR LISTA DE ESTUDIANTES", type="primary"):
+                    st.session_state.estudiantes = pd.DataFrame(
+                        columns=['Nombre', 'Participaciones', 'Puntaje']
+                    )
+                    st.rerun()
 
         if st.button("LIMPIAR LISTA DE ESTUDIANTES"):
             st.session_state.estudiantes = pd.DataFrame(
