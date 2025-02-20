@@ -2,15 +2,14 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Datos simulados de estudiantes
-datos = [
-    {'nombre': 'JOSE CHAMACHE', 'participaciones': 4, 'nota': 8},
-    {'nombre': 'NILTON GUEVARA', 'participaciones': 1, 'nota': 2},
-    {'nombre': 'MARLON MUGUERZA', 'participaciones': 1, 'nota': 2},
-    {'nombre': 'FORTUANDO OJEDA', 'participaciones': 1, 'nota': 2},
-    {'nombre': 'JUAN SEMINARIO', 'participaciones': 1, 'nota': 2},
-    {'nombre': 'LUIS SARAVIA', 'participaciones': 1, 'nota': 2}
-]
+# requirements.txt
+# streamlit
+# pandas
+# matplotlib
+
+# Inicializar listas vacías para estudiantes y preguntas
+datos = []
+preguntas = []
 
 st.markdown('<h1 style="text-align: center;">CONTROL DE PARTICIPACIÓN</h1>', unsafe_allow_html=True)
 
@@ -50,23 +49,28 @@ for estudiante in datos:
         if st.button(f"❌ {estudiante['nombre']}"):
             datos.remove(estudiante)
 
-# Cargar archivo TXT
-archivo = st.file_uploader('Cargar archivo TXT', type=['txt'])
-if archivo:
-    contenido = archivo.read().decode('utf-8').split('\n')
+# Cargar archivo TXT para estudiantes
+st.subheader('Cargar Estudiantes desde TXT')
+archivo_estudiantes = st.file_uploader('Selecciona un archivo TXT para estudiantes', type=['txt'])
+if archivo_estudiantes:
+    contenido = archivo_estudiantes.read().decode('utf-8').split('\n')
     for linea in contenido:
         if linea:
             datos.append({'nombre': linea, 'participaciones': 0, 'nota': 0})
-    st.success('Archivo cargado correctamente.')
+    st.success('Estudiantes cargados correctamente.')
 
-# Sección de Preguntas
-st.subheader('Gestión de Preguntas')
-preguntas = []
-nueva_pregunta = st.text_input('Escriba una nueva pregunta')
-if st.button('Agregar Pregunta'):
-    if nueva_pregunta:
-        preguntas.append(nueva_pregunta)
+# Cargar archivo TXT para preguntas
+st.subheader('Cargar Preguntas desde TXT')
+archivo_preguntas = st.file_uploader('Selecciona un archivo TXT para preguntas', type=['txt'])
+if archivo_preguntas:
+    contenido = archivo_preguntas.read().decode('utf-8').split('\n')
+    for linea in contenido:
+        if linea:
+            preguntas.append(linea)
+    st.success('Preguntas cargadas correctamente.')
 
+# Mostrar preguntas
+st.subheader('Lista de Preguntas')
 for pregunta in preguntas:
     col_p1, col_p2 = st.columns([4, 1])
     with col_p1:
@@ -88,3 +92,11 @@ if not df.empty:
     fig, ax = plt.subplots()
     ax.pie(df['participaciones'], labels=df['nombre'], autopct='%1.1f%%')
     st.pyplot(fig)
+
+# Archivo requirements.txt
+txt_requirements = """
+streamlit
+pandas
+matplotlib
+"""
+st.download_button(label="Descargar requirements.txt", data=txt_requirements, file_name="requirements.txt")
