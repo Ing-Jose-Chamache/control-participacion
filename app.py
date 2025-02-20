@@ -27,6 +27,17 @@ st.markdown("""
         font-weight: bold;
         color: #6c757d;
     }
+    .student-row {
+        padding: 5px;
+        margin-bottom: 5px;
+        border-bottom: 1px solid #eee;
+    }
+    .question-box {
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -59,66 +70,87 @@ class ControlParticipacion:
             """, unsafe_allow_html=True)
         st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
 
-    def actualizar_puntaje(self, idx):
-        participaciones = st.session_state.estudiantes.at[idx, 'Participaciones']
-        st.session_state.estudiantes.at[idx, 'Puntaje'] = min(
-            20, (participaciones / st.session_state.participaciones_esperadas) * 20
-        )
-
     def mostrar_estudiantes(self):
-        # Control de participaciones esperadas
         col1, col2 = st.columns([3, 1])
         with col1:
             st.markdown("### GESTIÓN DE ESTUDIANTES")
         with col2:
-            nuevo_valor = st.number_input("PARTICIPACIONES ESPERADAS", 
-                                        min_value=1, 
-                                        value=st.session_state.participaciones_esperadas)
-            if nuevo_valor != st.session_state.participaciones_esperadas:
-                st.session_state.participaciones_esperadas = nuevo_valor
+            participaciones = st.number_input(
+                "PARTICIPACIONES ESPERADAS",
+                min_value=1,
+                value=st.session_state.participaciones_esperadas
+            )
+            if participaciones != st.session_state.participaciones_esperadas:
+                st.session_state.participaciones_esperadas = participaciones
+                # Actualizar todos los puntajes
                 for idx in st.session_state.estudiantes.index:
-                    self.actualizar_puntaje(idx)
+                    participaciones = st.session_state.estudiantes.at[idx, 'Participaciones']
+                    st.session_state.estudiantes.at[idx, 'Puntaje'] = min(
+                        20, (participaciones / st.session_state.participaciones_esperadas) * 20
+                    )
 
-        # Agregar nuevo estudiante
+        # Agregar estudiantes manualmente
         col1, col2 = st.columns([3, 1])
         with col1:
-            nombre = st.text_input("NOMBRE DEL ESTUDIANTE")
+            nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
         with col2:
-            if st.button("AGREGAR") and nombre:
-                if nombre not in st.session_state.estudiantes['Nombre'].values:
+            if st.button("AGREGAR ESTUDIANTE") and nuevo_estudiante:
+                if nuevo_estudiante not in st.session_state.estudiantes['Nombre'].values:
+                    nuevo_df = pd.DataFrame({
+                        'Nombre': [nuevo_estudiante],
+                        'Participaciones': [0],
+                        'Puntaje': [0]
+                    })
                     st.session_state.estudiantes = pd.concat([
-                        st.session_state.estudiantes,
-                        pd.DataFrame({
-                            'Nombre': [nombre],
-                            'Participaciones': [0],
-                            'Puntaje': [0]
-                        })
+                        st.session_state.estudiantes, nuevo_df
                     ], ignore_index=True)
 
-        # Lista de estudiantes
-        for idx, estudiante in st.session_state.estudiantes.iterrows():
-            col1, col2, col3, col4, col5 = st.columns([2, 2, 1, 1, 1])
-            with col1:
-                st.write(f"**{estudiante['Nombre']}**")
-            with col2:
-                st.write(f"Participaciones: {estudiante['Participaciones']}/{st.session_state.participaciones_esperadas} | Nota: {estudiante['Puntaje']:.1f}")
-            with col3:
-                if st.button("+1", key=f"plus_{idx}"):
-                    st.session_state.estudiantes.at[idx, 'Participaciones'] += 1
-                    self.actualizar_puntaje(idx)
-                    st.rerun()
-            with col4:
-                if st.button("-1", key=f"minus_{idx}"):
-                    if st.session_state.estudiantes.at[idx, 'Participaciones'] > 0:
-                        st.session_state.estudiantes.at[idx, 'Participaciones'] -= 1
-                        self.actualizar_puntaje(idx)
-                        st.rerun()
-            with col5:
-                if st.button("❌", key=f"delete_{idx}"):
-                    st.session_state.estudiantes = st.session_state.estudiantes.drop(idx).reset_index(drop=True)
-                    st.rerun()
+        # Cargar estudiantes desde archivo
+        uploaded_file = st.file_uploader("CARGAR LISTA DE ESTUDIANTES", type=['txt'])
+        if uploaded_file:
+            contenido = StringIO(uploaded_file.getvalue().decode("utf-8")).read().splitlines()
+            for estudiante in contenido:
+                if estudiante.strip() and estudiante not in st.session_state.estudiantes['Nombre'].values:
+                    nuevo_df = pd.DataFrame({
+                        'Nombre': [estudiante.strip()],
+                        'Participaciones': [0],
+                        'Puntaje': [0]
+                    })
+                    st.session_state.estudiantes = pd.concat([
+                        st.session_state.estudiantes, nuevo_df
+                    ], ignore_index=True)
 
-        # Botón para eliminar todos
+        # Mostrar y gestionar estudiantes
+        for idx in st.session_state.estudiantes.index:
+            with st.container():
+                cols = st.columns([2, 2, 1, 1, 1])
+                with cols[0]:
+                    st.write(f"**{st.session_state.estudiantes.at[idx, 'Nombre']}**")
+                with cols[1]:
+                    st.write(f"Participaciones: {st.session_state.estudiantes.at[idx, 'Participaciones']}/{st.session_state.participaciones_esperadas} | Nota: {st.session_state.estudiantes.at[idx, 'Puntaje']:.1f}")
+                with cols[2]:
+                    if st.button("+1", key=f"plus_{idx}"):
+                        participaciones = st.session_state.estudiantes.at[idx, 'Participaciones'] + 1
+                        st.session_state.estudiantes.at[idx, 'Participaciones'] = participaciones
+                        st.session_state.estudiantes.at[idx, 'Puntaje'] = min(
+                            20, (participaciones / st.session_state.participaciones_esperadas) * 20
+                        )
+                        st.rerun()
+                with cols[3]:
+                    if st.button("-1", key=f"minus_{idx}"):
+                        if st.session_state.estudiantes.at[idx, 'Participaciones'] > 0:
+                            participaciones = st.session_state.estudiantes.at[idx, 'Participaciones'] - 1
+                            st.session_state.estudiantes.at[idx, 'Participaciones'] = participaciones
+                            st.session_state.estudiantes.at[idx, 'Puntaje'] = min(
+                                20, (participaciones / st.session_state.participaciones_esperadas) * 20
+                            )
+                            st.rerun()
+                with cols[4]:
+                    if st.button("❌", key=f"delete_{idx}"):
+                        st.session_state.estudiantes = st.session_state.estudiantes.drop(idx).reset_index(drop=True)
+                        st.rerun()
+
+        # Botón para eliminar todos los estudiantes
         if not st.session_state.estudiantes.empty:
             if st.button("ELIMINAR TODOS LOS ESTUDIANTES"):
                 st.session_state.estudiantes = pd.DataFrame(columns=['Nombre', 'Participaciones', 'Puntaje'])
@@ -132,56 +164,73 @@ class ControlParticipacion:
                     st.session_state.estudiantes,
                     x='Nombre',
                     y='Participaciones',
-                    title='PARTICIPACIONES POR ESTUDIANTE'
+                    title='PARTICIPACIONES POR ESTUDIANTE',
+                    color='Participaciones',
+                    color_continuous_scale='Viridis'
                 )
+                fig_bar.update_layout(title_x=0.5)
                 st.plotly_chart(fig_bar, use_container_width=True)
             
             with col2:
-                total = st.session_state.estudiantes['Participaciones'].sum()
-                if total > 0:
+                total_participaciones = st.session_state.estudiantes['Participaciones'].sum()
+                if total_participaciones > 0:
                     datos_torta = st.session_state.estudiantes.copy()
-                    datos_torta['Porcentaje'] = (datos_torta['Participaciones'] / total * 100)
+                    datos_torta['Porcentaje'] = (datos_torta['Participaciones'] / total_participaciones * 100)
                     fig_pie = px.pie(
                         datos_torta,
                         values='Porcentaje',
                         names='Nombre',
                         title='DISTRIBUCIÓN DE PARTICIPACIONES (%)'
                     )
+                    fig_pie.update_layout(title_x=0.5)
                     st.plotly_chart(fig_pie, use_container_width=True)
 
     def gestionar_preguntas(self):
         st.markdown("### PREGUNTAS PLANIFICADAS")
         
-        # Agregar pregunta
-        nueva_pregunta = st.text_input("ESCRIBA UNA NUEVA PREGUNTA")
-        if st.button("AGREGAR PREGUNTA") and nueva_pregunta:
-            st.session_state.preguntas.append(nueva_pregunta)
+        # Agregar pregunta manualmente
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            nueva_pregunta = st.text_input("ESCRIBA UNA NUEVA PREGUNTA")
+        with col2:
+            if st.button("AGREGAR PREGUNTA") and nueva_pregunta:
+                st.session_state.preguntas.append(nueva_pregunta)
+                st.rerun()
+
+        # Cargar preguntas desde archivo
+        uploaded_file = st.file_uploader("CARGAR PREGUNTAS", type=['txt'])
+        if uploaded_file:
+            contenido = StringIO(uploaded_file.getvalue().decode("utf-8")).read().splitlines()
+            for pregunta in contenido:
+                if pregunta.strip():
+                    st.session_state.preguntas.append(pregunta.strip())
             st.rerun()
 
-        # Mostrar preguntas
+        # Mostrar y gestionar preguntas
         for i, pregunta in enumerate(st.session_state.preguntas):
-            col1, col2, col3 = st.columns([3, 1, 1])
-            with col1:
-                if i in st.session_state.preguntas_completadas:
-                    st.markdown(f"<p class='question-completed'>{i+1}. {pregunta}</p>", unsafe_allow_html=True)
-                else:
-                    st.write(f"{i+1}. {pregunta}")
-            with col2:
-                if st.button("✓" if i not in st.session_state.preguntas_completadas else "↩", key=f"complete_{i}"):
+            with st.container():
+                cols = st.columns([3, 1, 1])
+                with cols[0]:
                     if i in st.session_state.preguntas_completadas:
-                        st.session_state.preguntas_completadas.remove(i)
+                        st.markdown(f"<p class='question-completed'>{i+1}. {pregunta}</p>", unsafe_allow_html=True)
                     else:
-                        st.session_state.preguntas_completadas.add(i)
-                    st.rerun()
-            with col3:
-                if st.button("❌", key=f"delete_pregunta_{i}"):
-                    st.session_state.preguntas.pop(i)
-                    st.session_state.preguntas_completadas = {
-                        x if x < i else x - 1 for x in st.session_state.preguntas_completadas if x != i
-                    }
-                    st.rerun()
+                        st.write(f"{i+1}. {pregunta}")
+                with cols[1]:
+                    if st.button("✓" if i not in st.session_state.preguntas_completadas else "↩", key=f"complete_{i}"):
+                        if i in st.session_state.preguntas_completadas:
+                            st.session_state.preguntas_completadas.remove(i)
+                        else:
+                            st.session_state.preguntas_completadas.add(i)
+                        st.rerun()
+                with cols[2]:
+                    if st.button("❌", key=f"delete_pregunta_{i}"):
+                        st.session_state.preguntas.pop(i)
+                        st.session_state.preguntas_completadas = {
+                            x if x < i else x - 1 for x in st.session_state.preguntas_completadas if x != i
+                        }
+                        st.rerun()
 
-        # Eliminar todas las preguntas
+        # Botón para eliminar todas las preguntas
         if st.session_state.preguntas:
             if st.button("ELIMINAR TODAS LAS PREGUNTAS"):
                 st.session_state.preguntas = []
@@ -196,7 +245,7 @@ class ControlParticipacion:
         st.markdown("---")
         self.gestionar_preguntas()
         st.markdown("""
-            <div style="text-align: center; padding: 20px;">
+            <div style="text-align: center; padding: 20px; margin-top: 30px;">
                 <h3>Desarrollado por:</h3>
                 <p><strong>Ing. José Yván Chamache Chiong</strong></p>
                 <p>Lima, Perú - 2024</p>
