@@ -1,4 +1,64 @@
-import streamlit as st
+def mostrar_estudiantes(self):
+        st.markdown("### GESTIÓN DE ESTUDIANTES")
+        
+        # Participaciones esperadas
+        col1, col2 = st.columns([3, 1])
+        with col2:
+            participaciones = st.number_input(
+                "PARTICIPACIONES ESPERADAS",
+                min_value=1,
+                value=st.session_state.participaciones_esperadas
+            )
+            if participaciones != st.session_state.participaciones_esperadas:
+                st.session_state.participaciones_esperadas = participaciones
+                for idx in st.session_state.estudiantes.index:
+                    part = st.session_state.estudiantes.at[idx, 'Participaciones']
+                    st.session_state.estudiantes.at[idx, 'Puntaje'] = (part / participaciones) * 20
+                st.experimental_rerun()
+
+        # Agregar estudiante
+        nombre = st.text_input("NOMBRE DEL ESTUDIANTE")
+        if st.button("AGREGAR") and nombre:
+            if nombre not in st.session_state.estudiantes['Nombre'].values:
+                nuevo_df = pd.DataFrame({
+                    'Nombre': [nombre],
+                    'Participaciones': [0],
+                    'Puntaje': [0]
+                })
+                st.session_state.estudiantes = pd.concat([
+                    st.session_state.estudiantes, nuevo_df
+                ], ignore_index=True)
+                st.experimental_rerun()
+
+        # Lista de estudiantes
+        for idx in st.session_state.estudiantes.index:
+            col1, col2, col3, col4, col5 = st.columns([2, 2, 1, 1, 1])
+            with col1:
+                st.write(f"**{st.session_state.estudiantes.at[idx, 'Nombre']}**")
+            with col2:
+                st.write(f"{st.session_state.estudiantes.at[idx, 'Participaciones']}/{st.session_state.participaciones_esperadas} | {st.session_state.estudiantes.at[idx, 'Puntaje']:.1f}")
+            with col3:
+                if st.button("+1", key=f"plus_{idx}"):
+                    st.session_state.estudiantes.at[idx, 'Participaciones'] += 1
+                    part = st.session_state.estudiantes.at[idx, 'Participaciones']
+                    st.session_state.estudiantes.at[idx, 'Puntaje'] = (part / st.session_state.participaciones_esperadas) * 20
+                    st.experimental_rerun()
+            with col4:
+                if st.button("-1", key=f"minus_{idx}"):
+                    if st.session_state.estudiantes.at[idx, 'Participaciones'] > 0:
+                        st.session_state.estudiantes.at[idx, 'Participaciones'] -= 1
+                        part = st.session_state.estudiantes.at[idx, 'Participaciones']
+                        st.session_state.estudiantes.at[idx, 'Puntaje'] = (part / st.session_state.participaciones_esperadas) * 20
+                        st.experimental_rerun()
+            with col5:
+                if st.button("❌", key=f"del_est_{idx}"):
+                    st.session_state.estudiantes = st.session_state.estudiantes.drop(idx).reset_index(drop=True)
+                    st.experimental_rerun()
+
+        # Eliminar todos los estudiantes
+        if not st.session_state.estudiantes.empty:
+            if st.button("ELIMINAR TODOS LOS ESTUDIANTES"):
+                st.session_state.estudiantes = pd.DataFrame(columns=['Nombre', 'Participaciones', 'Puntaje'import streamlit as st
 import pandas as pd
 import plotly.express as px
 import base64
@@ -44,11 +104,19 @@ class ControlParticipacion:
             st.session_state.logo = None
 
     def cargar_logo(self):
-        col1, col2, col3 = st.columns([1, 8, 1])
-        with col1:
-            uploaded_file = st.file_uploader("LOGO", type=['png', 'jpg', 'jpeg'])
-            if uploaded_file is not None:
-                st.session_state.logo = base64.b64encode(uploaded_file.getvalue()).decode()
+        # Un solo botón pequeño en la esquina superior izquierda
+        with st.sidebar:
+            # Ocultar texto del uploader
+            st.markdown("""
+                <style>
+                    .element-container div.stButton {width: 50px;}
+                    [data-testid="stFileUploadDropzone"] {display: none;}
+                </style>
+            """, unsafe_allow_html=True)
+            if st.button("📷"):
+                uploaded_file = st.file_uploader("", type=['jpg', 'bmp'])
+                if uploaded_file:
+                    st.session_state.logo = base64.b64encode(uploaded_file.getvalue()).decode()
 
     def mostrar_header(self):
         if st.session_state.logo:
