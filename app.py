@@ -1,11 +1,9 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 
 # requirements.txt
 # streamlit
 # pandas
-# matplotlib
 
 # Inicializar listas vacías para estudiantes y preguntas
 datos = []
@@ -88,15 +86,13 @@ if not df.empty:
     # Gráfico de barras
     st.bar_chart(df.set_index('nombre')['participaciones'])
 
-    # Gráfico circular
-    fig, ax = plt.subplots()
-    ax.pie(df['participaciones'], labels=df['nombre'], autopct='%1.1f%%')
-    st.pyplot(fig)
+    # Gráfico circular con Streamlit
+    st.subheader('Distribución de Participaciones')
+    st.dataframe(df[['nombre', 'participaciones']])
 
 # Archivo requirements.txt
 txt_requirements = """
 streamlit
 pandas
-matplotlib
 """
 st.download_button(label="Descargar requirements.txt", data=txt_requirements, file_name="requirements.txt")
