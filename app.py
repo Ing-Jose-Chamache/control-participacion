@@ -30,28 +30,8 @@ st.markdown("""
         position: absolute;
         top: 10px;
         left: 10px;
-        width: 40px;
+        width: 25%;
         z-index: 100;
-    }
-    /* Ocultar el texto del uploader */
-    .logo-upload [data-testid="stFileUploader"] {
-        width: 40px;
-    }
-    .logo-upload [data-testid="stFileUploader"] div div div {
-        display: none;
-    }
-    .logo-upload [data-testid="stFileUploader"] div div small {
-        display: none;
-    }
-    /* Estilizar el botón de carga */
-    .logo-upload [data-testid="stFileUploadDropzone"] {
-        min-height: 40px !important;
-        padding: 5px !important;
-        background-color: transparent !important;
-        border: none !important;
-    }
-    .logo-upload button[data-testid="baseButton-secondary"] {
-        display: none;
     }
     .logo-container {
         text-align: center;
