@@ -30,7 +30,6 @@ st.markdown("""
         position: absolute;
         top: 10px;
         left: 10px;
-        width: 25%;
         z-index: 100;
     }
     .logo-container {
@@ -93,7 +92,7 @@ class ControlParticipacion:
     def cargar_logo(self):
         with st.container():
             st.markdown('<div class="logo-upload">', unsafe_allow_html=True)
-            logo_file = st.file_uploader("LOGO", type=['png', 'jpg', 'jpeg'])
+            logo_file = st.file_uploader("LOGO", type=['png', 'jpg', 'jpeg'], label_visibility="collapsed")
             st.markdown('</div>', unsafe_allow_html=True)
             if logo_file is not None:
                 st.session_state.logo = base64.b64encode(logo_file.read()).decode()
@@ -313,3 +312,5 @@ class ControlParticipacion:
 if __name__ == "__main__":
     app = ControlParticipacion()
     app.run()
+
+# Pepito Prueba
