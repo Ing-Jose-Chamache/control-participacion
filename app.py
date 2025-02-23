@@ -269,7 +269,7 @@ class ControlParticipacion:
 
     def cargar_preguntas_txt(self):
         archivo = st.file_uploader("📄", type=['txt'], key="preguntas_uploader", 
-                                 help="Cargar archivo de preguntas")
+                                 help="Cargar archivo de preguntas", label_visibility="collapsed")
         if archivo is not None:
             try:
                 contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
@@ -279,7 +279,7 @@ class ControlParticipacion:
                     st.session_state.pregunta_actual = 0
                     st.experimental_rerun()
             except Exception as e:
-                st.error("Error al cargar el archivo")
+                pass  # Silenciar el error
 
     def eliminar_pregunta(self, index):
         if 0 <= index < len(st.session_state.preguntas):
