@@ -20,28 +20,21 @@ st.markdown("""
     .stTextInput>div>div>input {
         padding: 0.5rem;
     }
-    .stFileUploader {
-        font-family: 'Helvetica Neue', Arial, sans-serif;
-        font-size: 8px;
-        font-weight: 300;
-        color: #666;
-        letter-spacing: 0.5px;
+    /* Ocultar el texto de drag and drop y límite */
+    .stFileUploader [data-testid="stMarkdownContainer"] {
+        display: none !important;
     }
-    div[data-testid="stFileUploader"] p {
-        font-size: 8px !important;
-        font-family: 'Helvetica Neue', Arial, sans-serif !important;
-        color: #666 !important;
-        letter-spacing: 0.5px !important;
-    }
-    .stFileUploader label {
-        font-size: 8px !important;
-        font-family: 'Helvetica Neue', Arial, sans-serif !important;
-        color: #666 !important;
-    }
+    
+    /* Estilo solo para el botón Browse files */
     .stFileUploader button {
-        font-size: 8px !important;
+        font-size: 9.5px !important;
         font-family: 'Helvetica Neue', Arial, sans-serif !important;
         padding: 2px 8px !important;
+    }
+    
+    /* Ocultar el texto del límite de archivo */
+    .stFileUploader p {
+        display: none !important;
     }
     .uploadedFile {
         width: 15%;
