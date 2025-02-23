@@ -39,20 +39,6 @@ st.markdown("""
     .student-section {
         font-size: 1.1em;
     }
-    .question-box {
-        background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .question-completed {
-        text-decoration: line-through;
-        color: red;
-    }
     .student-row {
         background-color: #ffffff;
         padding: 10px;
@@ -85,10 +71,6 @@ class ControlParticipacion:
             )
         if 'participaciones_esperadas' not in st.session_state:
             st.session_state.participaciones_esperadas = 10
-        if 'preguntas' not in st.session_state:
-            st.session_state.preguntas = []
-        if 'preguntas_completadas' not in st.session_state:
-            st.session_state.preguntas_completadas = set()
         if 'logo' not in st.session_state:
             st.session_state.logo = None
 
@@ -110,43 +92,27 @@ class ControlParticipacion:
         
         st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
 
-    def cargar_archivo_txt(self, tipo):
-        archivo = st.file_uploader(f"CARGAR ARCHIVO {tipo.upper()}", type=['txt'])
+    def cargar_archivo_txt(self):
+        archivo = st.file_uploader("CARGAR ARCHIVO DE ESTUDIANTES (TXT)", type=['txt'])
         if archivo is not None:
             try:
                 contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
                 contenido = [linea.strip() for linea in contenido if linea.strip()]
                 
-                if tipo == "estudiantes":
-                    for estudiante in contenido:
-                        if estudiante not in st.session_state.estudiantes['Nombre'].values:
-                            nuevo_df = pd.DataFrame({
-                                'Nombre': [estudiante],
-                                'Participaciones': [0],
-                                'Puntaje': [0]
-                            })
-                            st.session_state.estudiantes = pd.concat(
-                                [st.session_state.estudiantes, nuevo_df],
-                                ignore_index=True
-                            )
-                    st.success("Estudiantes cargados exitosamente")
-                
-                elif tipo == "preguntas":
-                    st.session_state.preguntas.extend(contenido)
-                    st.success("Preguntas cargadas exitosamente")
+                for estudiante in contenido:
+                    if estudiante not in st.session_state.estudiantes['Nombre'].values:
+                        nuevo_df = pd.DataFrame({
+                            'Nombre': [estudiante],
+                            'Participaciones': [0],
+                            'Puntaje': [0]
+                        })
+                        st.session_state.estudiantes = pd.concat(
+                            [st.session_state.estudiantes, nuevo_df],
+                            ignore_index=True
+                        )
+                st.success("Estudiantes cargados exitosamente")
             except Exception as e:
                 st.error(f"Error al cargar el archivo: {str(e)}")
-
-    def cargar_archivo_jpg(self):
-        archivo = st.file_uploader("CARGAR IMAGEN DE PREGUNTAS (JPG)", type=['jpg', 'jpeg'])
-        if archivo is not None:
-            try:
-                imagen = archivo.read()
-                imagen_b64 = base64.b64encode(imagen).decode()
-                st.session_state.preguntas.append(imagen_b64)
-                st.success("Imagen cargada exitosamente")
-            except Exception as e:
-                st.error(f"Error al cargar la imagen: {str(e)}")
 
     def eliminar_estudiante(self, nombre):
         st.session_state.estudiantes = st.session_state.estudiantes[
@@ -174,7 +140,7 @@ class ControlParticipacion:
                     else:
                         st.error("Este estudiante ya existe")
         with col3:
-            self.cargar_archivo_txt("estudiantes")
+            self.cargar_archivo_txt()
 
     def mostrar_estudiantes(self):
         col1, col2 = st.columns([3, 1])
@@ -266,42 +232,6 @@ class ControlParticipacion:
                     )
                     st.plotly_chart(fig_pie, use_container_width=True)
 
-    def gestionar_preguntas(self):
-        st.markdown("### PREGUNTAS PLANIFICADAS")
-        col1, col2, col3 = st.columns([2, 1, 1])
-        
-        with col1:
-            nueva_pregunta = st.text_input("ESCRIBA UNA NUEVA PREGUNTA")
-        with col2:
-            if st.button("AGREGAR PREGUNTA"):
-                if nueva_pregunta:
-                    st.session_state.preguntas.append(nueva_pregunta)
-        with col3:
-            self.cargar_archivo_jpg()
-
-        for i, pregunta in enumerate(st.session_state.preguntas):
-            with st.container():
-                st.markdown(
-                    f'<div class="question-box{" question-completed" if i in st.session_state.preguntas_completadas else ""}">',
-                    unsafe_allow_html=True
-                )
-                cols = st.columns([4, 1])
-                with cols[0]:
-                    st.image(f"data:image/jpeg;base64,{pregunta}", use_column_width=True)
-                with cols[1]:
-                    if i in st.session_state.preguntas_completadas:
-                        if st.button("Desmarcar", key=f"uncheck_{i}"):
-                            st.session_state.preguntas_completadas.remove(i)
-                    else:
-                        if st.button("Completar", key=f"check_{i}"):
-                            st.session_state.preguntas_completadas.add(i)
-                st.markdown('</div>', unsafe_allow_html=True)
-
-        if st.button("LIMPIAR PREGUNTAS"):
-            st.session_state.preguntas = []
-            st.session_state.preguntas_completadas = set()
-            st.success("Lista de preguntas limpiada exitosamente")
-
     def mostrar_creditos(self):
         st.markdown("""
         <div class="credits">
@@ -318,8 +248,6 @@ class ControlParticipacion:
         st.markdown("---")
         self.mostrar_estudiantes()
         self.mostrar_graficos()
-        st.markdown("---")
-        self.gestionar_preguntas()
         self.mostrar_creditos()
 
 # Iniciar la aplicación
