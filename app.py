@@ -274,31 +274,15 @@ class ControlParticipacion:
             return False
 
     def cargar_preguntas_txt(self):
-        """Maneja la carga del archivo de preguntas de forma silenciosa."""
-        try:
-            uploaded_file = st.file_uploader(
-                "📄",
-                type=['txt'],
-                label_visibility="collapsed",
-                key="preguntas_upload"
-            )
-            
-            if uploaded_file is not None:
-                # Leer contenido
-                contenido = uploaded_file.read().decode('utf-8')
-                preguntas = [linea.strip() for linea in contenido.splitlines() if linea.strip()]
-                
-                if preguntas:
-                    st.session_state.preguntas = preguntas
-                    st.session_state.pregunta_actual = 0
-                
-                # Forzar actualización
-                placeholder = st.empty()
-                placeholder.empty()
-                st.experimental_rerun()
-                
-        except:
-            pass  # Ignora cualquier error silenciosamente
+        """Carga silenciosa y simple de preguntas."""
+        file = st.file_uploader("", type=['txt'], label_visibility="hidden")
+        if file:
+            contenido = file.getvalue().decode()
+            preguntas = [line.strip() for line in contenido.split('\n') if line.strip()]
+            if preguntas:
+                st.session_state.preguntas = preguntas
+                st.session_state.pregunta_actual = 0
+                st.rerun()
 
     def eliminar_pregunta(self, index):
         if 0 <= index < len(st.session_state.preguntas):
