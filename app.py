@@ -503,31 +503,114 @@ class ControlParticipacion:
         self.cargar_logo()
         self.mostrar_header()
         
-        # Columna principal y sidebar
-        col_main, col_questions = st.columns([7, 3])
+        # Sección de preguntas arriba al centro
+        st.markdown("""
+            <div style='max-width: 800px; margin: 20px auto;'>
+                <h3 style='text-align: center; color: #1f1f1f; margin-bottom: 20px;'>PREGUNTAS</h3>
+            </div>
+        """, unsafe_allow_html=True)
         
-        with col_main:
-            self.agregar_estudiante()
-            st.markdown("---")
-            self.mostrar_estudiantes()
+        if 'preguntas' in st.session_state and st.session_state.preguntas:
+            # Contenedor para el carrusel de preguntas
+            st.markdown("""
+                <style>
+                .pregunta-card {
+                    background-color: #ffffff;
+                    border: 2px solid #e1e4e8;
+                    border-radius: 12px;
+                    padding: 20px;
+                    margin: 10px auto;
+                    max-width: 800px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    position: relative;
+                }
+                .pregunta-numero {
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    color: #6c757d;
+                    font-weight: 500;
+                }
+                .pregunta-texto {
+                    font-size: 1.1em;
+                    line-height: 1.6;
+                    color: #2c3e50;
+                    padding: 10px 0;
+                }
+                .pregunta-nav {
+                    display: flex;
+                    justify-content: center;
+                    gap: 20px;
+                    margin: 15px 0;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+
+            if 'pregunta_actual' not in st.session_state:
+                st.session_state.pregunta_actual = 0
+
+            # Navegación y visualización de preguntas
+            col1, col2, col3 = st.columns([1, 6, 1])
             
-            # Botones de control al final
-            if len(st.session_state.estudiantes) > 0:
-                if st.button("❌ ELIMINAR TODOS LOS ESTUDIANTES", type="secondary", 
-                           help="Eliminar todos los estudiantes",
-                           use_container_width=True):
-                    if self.limpiar_lista_estudiantes():
-                        st.success("Todos los estudiantes han sido eliminados")
-                        time.sleep(0.1)
-                        st.rerun()
+            with col1:
+                if st.button("⬅️", key="prev_question", disabled=st.session_state.pregunta_actual == 0):
+                    st.session_state.pregunta_actual = max(0, st.session_state.pregunta_actual - 1)
+                    st.rerun()
             
-            self.mostrar_graficos()
-        
-        with col_questions:
-            self.mostrar_preguntas()
-        
+            with col2:
+                total_preguntas = len(st.session_state.preguntas)
+                st.markdown(f"""
+                    <div class="pregunta-card">
+                        <div class="pregunta-numero">Pregunta {st.session_state.pregunta_actual + 1}/{total_preguntas}</div>
+                        <div class="pregunta-texto">{st.session_state.preguntas[st.session_state.pregunta_actual]}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            with col3:
+                if st.button("➡️", key="next_question", disabled=st.session_state.pregunta_actual >= total_preguntas - 1):
+                    st.session_state.pregunta_actual = min(total_preguntas - 1, st.session_state.pregunta_actual + 1)
+                    st.rerun()
+
+        # Sección principal de estudiantes
         st.markdown("---")
-        self.mostrar_creditos()
+        self.agregar_estudiante()
+        self.mostrar_estudiantes()
+        self.mostrar_graficos()
+        
+        # Footer con carga de preguntas y créditos
+        st.markdown("---")
+        
+        footer_col1, footer_col2 = st.columns([1, 2])
+        with footer_col1:
+            self.cargar_preguntas_txt()
+        
+        with footer_col2:
+            st.markdown("""
+                <div style="
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    padding: 25px;
+                    border-radius: 15px;
+                    text-align: center;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    margin-top: 20px;
+                ">
+                    <h3 style="
+                        color: #2c3e50;
+                        font-size: 1.5em;
+                        margin-bottom: 10px;
+                    ">Desarrollado por</h3>
+                    <p style="
+                        color: #34495e;
+                        font-size: 1.2em;
+                        font-weight: 600;
+                        margin: 5px 0;
+                    ">Ing. José Yván Chamache Chiong</p>
+                    <p style="
+                        color: #7f8c8d;
+                        font-style: italic;
+                    ">Lima, Perú - 2024</p>
+                </div>
+            """, unsafe_allow_html=True)
 
 # Iniciar la aplicación
 if __name__ == "__main__":
