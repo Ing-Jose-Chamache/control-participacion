@@ -92,12 +92,35 @@ st.markdown("""
         text-decoration: line-through;
         color: #6c757d;
     }
+    /* Estilos para los iconos de participación */
+    .icon-container {
+        display: inline-flex;
+        gap: 5px;
+        align-items: center;
+    }
+    
+    .participation-icon {
+        cursor: pointer;
+        font-size: 20px;
+        transition: color 0.3s ease;
+    }
+    
+    .participation-icon.active {
+        color: #00ff00;
+    }
+    
+    .participation-icon.inactive {
+        color: #cccccc;
+    }
+    
     .student-row {
         background-color: #ffffff;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 5px;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 8px;
         border: 1px solid #dee2e6;
+        display: flex;
+        align-items: center;
     }
     .student-controls {
         display: flex;
@@ -211,43 +234,60 @@ class ControlParticipacion:
                 key="participaciones_input"
             ) or 5)
 
+        # Inicializar el estado de los iconos si no existe
+        if 'iconos_estado' not in st.session_state:
+            st.session_state.iconos_estado = {}
+
         for _, estudiante in st.session_state.estudiantes.iterrows():
+            nombre = estudiante['Nombre']
+            
+            # Inicializar estado de iconos para este estudiante si no existe
+            if nombre not in st.session_state.iconos_estado:
+                st.session_state.iconos_estado[nombre] = [False] * st.session_state.participaciones_esperadas
+
             with st.container():
                 st.markdown(f'<div class="student-row">', unsafe_allow_html=True)
-                cols = st.columns([3, 2, 2, 1, 1, 1])
+                cols = st.columns([3, 4, 2, 1])
+                
                 with cols[0]:
-                    st.write(f"**{estudiante['Nombre']}**")
+                    st.write(f"**{nombre}**")
+                
                 with cols[1]:
-                    st.write(f"Participaciones: {estudiante['Participaciones']}/{st.session_state.participaciones_esperadas}")
-                with cols[2]:
-                    st.write(f"Nota: {estudiante['Puntaje']:.1f}")
-                with cols[3]:
-                    if st.button("+1", key=f"plus_{estudiante['Nombre']}"):
-                        idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
-                        st.session_state.estudiantes.loc[idx, 'Participaciones'] += 1
-                        # Cálculo exacto del puntaje
-                        participaciones = st.session_state.estudiantes.loc[idx, 'Participaciones']
-                        puntaje = (participaciones * 20) / st.session_state.participaciones_esperadas
-                        st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(20.0, round(puntaje, 1))
-                with cols[4]:
-                    if st.button("-1", key=f"minus_{estudiante['Nombre']}"):
-                        idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
-                        if st.session_state.estudiantes.loc[idx, 'Participaciones'] > 0:
-                            st.session_state.estudiantes.loc[idx, 'Participaciones'] -= 1
-                            # Cálculo exacto del puntaje
-                            participaciones = st.session_state.estudiantes.loc[idx, 'Participaciones']
+                    # Mostrar iconos interactivos
+                    iconos_html = ""
+                    for i in range(st.session_state.participaciones_esperadas):
+                        icon_key = f"icon_{nombre}_{i}"
+                        is_active = st.session_state.iconos_estado[nombre][i]
+                        icon_style = "color: #00ff00;" if is_active else "color: #cccccc;"
+                        if st.button("⬤", key=icon_key, help="Click para marcar/desmarcar participación"):
+                            st.session_state.iconos_estado[nombre][i] = not is_active
+                            # Recalcular participaciones y puntaje
+                            participaciones = sum(st.session_state.iconos_estado[nombre])
+                            idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == nombre].index[0]
+                            st.session_state.estudiantes.loc[idx, 'Participaciones'] = participaciones
                             puntaje = (participaciones * 20) / st.session_state.participaciones_esperadas
-                            st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(20.0, round(puntaje, 1))
-                with cols[5]:
-                    if st.button("🗑️", key=f"delete_{estudiante['Nombre']}"):
-                        self.eliminar_estudiante(estudiante['Nombre'])
+                            st.session_state.estudiantes.loc[idx, 'Puntaje'] = round(puntaje, 1)
+                            st.rerun()
+                
+                with cols[2]:
+                    participaciones = sum(st.session_state.iconos_estado[nombre])
+                    puntaje = (participaciones * 20) / st.session_state.participaciones_esperadas
+                    st.write(f"Nota: {round(puntaje, 1)}")
+                
+                with cols[3]:
+                    if st.button("🗑️", key=f"delete_{nombre}"):
+                        self.eliminar_estudiante(nombre)
+                        if nombre in st.session_state.iconos_estado:
+                            del st.session_state.iconos_estado[nombre]
                         st.rerun()
+                
                 st.markdown('</div>', unsafe_allow_html=True)
 
         if st.button("LIMPIAR LISTA DE ESTUDIANTES"):
             st.session_state.estudiantes = pd.DataFrame(
                 columns=['Nombre', 'Participaciones', 'Puntaje']
             )
+            st.session_state.iconos_estado = {}
             st.success("Lista de estudiantes limpiada exitosamente")
 
     def mostrar_graficos(self):
