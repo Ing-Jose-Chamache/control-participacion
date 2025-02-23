@@ -76,9 +76,37 @@ st.markdown("""
         width: 50px;
         height: 50px;
         overflow: hidden;
+        background-color: #4d4d4d;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
     }
     div[data-testid="stFileUploader"] div {
         padding: 0 !important;
+    }
+    div[data-testid="stFileUploader"]:hover {
+        background-color: #666666;
+    }
+    .upload-container {
+        position: fixed;
+        z-index: 1000;
+        display: flex;
+        gap: 10px;
+    }
+    .upload-logo {
+        top: 10px;
+        left: 10px;
+    }
+    .upload-students {
+        top: 70px;
+        left: 10px;
+    }
+    .upload-questions {
+        bottom: 10px;
+        right: 10px;
     }
     .stats-container {
         background-color: #f8f9fa;
@@ -102,12 +130,29 @@ if 'pregunta_actual' not in st.session_state:
 if 'num_preguntas' not in st.session_state:
     st.session_state.num_preguntas = 5
 
-# Logo
-col1, col2 = st.columns([1, 4])
-with col1:
-    logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'])
-    if logo_file:
-        st.image(logo_file, width=200)
+# Botones de carga
+st.markdown('<div class="upload-container upload-logo">', unsafe_allow_html=True)
+logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'], key="logo")
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="upload-container upload-students">', unsafe_allow_html=True)
+students_file = st.file_uploader("", type=['txt'], key="students")
+st.markdown('</div>', unsafe_allow_html=True)
+
+if logo_file:
+    st.image(logo_file, width=200)
+
+if students_file:
+    try:
+        contenido = StringIO(students_file.getvalue().decode("utf-8")).read().splitlines()
+        for estudiante in contenido:
+            if estudiante.strip() and estudiante not in st.session_state.estudiantes['Nombre'].values:
+                nuevo_df = pd.DataFrame({
+                    'Nombre': [estudiante.strip()],
+                    'Respuestas': ['0' * st.session_state.num_preguntas]
+                })
+                st.session_state.estudiantes = pd.concat([st.session_state.estudiantes, nuevo_df], ignore_index=True)
+        st.success(f"Se cargaron {len(contenido)} estudiantes")
 
 # Configuración
 col_nombre, col_num, _ = st.columns([2, 1, 1])
@@ -162,9 +207,12 @@ for idx, estudiante in st.session_state.estudiantes.iterrows():
             st.rerun()
 
 # Cargar preguntas
-txt_file = st.file_uploader("", type=['txt'])
-if txt_file:
-    contenido = StringIO(txt_file.getvalue().decode("utf-8")).read().splitlines()
+st.markdown('<div class="upload-container upload-questions">', unsafe_allow_html=True)
+questions_file = st.file_uploader("", type=['txt'], key="questions")
+st.markdown('</div>', unsafe_allow_html=True)
+
+if questions_file:
+    contenido = StringIO(questions_file.getvalue().decode("utf-8")).read().splitlines()
     st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
     st.success(f"Se cargaron {len(st.session_state.preguntas)} preguntas")
 
