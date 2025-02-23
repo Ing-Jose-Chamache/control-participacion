@@ -279,7 +279,7 @@ class ControlParticipacion:
                     st.session_state.pregunta_actual = 0
                     st.experimental_rerun()
             except Exception as e:
-                st.error("Error al cargar el archivo")
+                st.error("Cargar el archivo nuevamente")
 
     def eliminar_pregunta(self, index):
         if 0 <= index < len(st.session_state.preguntas):
