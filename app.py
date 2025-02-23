@@ -180,7 +180,7 @@ if st.session_state.preguntas:
             st.session_state.pregunta_actual -= 1
             st.rerun()
     with col2:
-        st.markdown(f"<div class='question-text'>Pregunta {st.session_state.pregunta_actual + 1}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='question-number'>Pregunta {st.session_state.pregunta_actual + 1}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='question-text'>{st.session_state.preguntas[st.session_state.pregunta_actual]}</div>", unsafe_allow_html=True)
     with col3:
         if st.button("→") and st.session_state.pregunta_actual < len(st.session_state.preguntas) - 1:
