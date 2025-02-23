@@ -184,13 +184,13 @@ class ControlParticipacion:
         st.markdown("""
             <style>
             .main {
-                background-color: #E3F2FD !important;
+                background-color: #f8f9fa !important;
             }
             .stApp {
-                background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 50%, #E3F2FD 100%) !important;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%) !important;
             }
             div[data-testid="stAppViewContainer"] {
-                background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 50%, #E3F2FD 100%) !important;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%) !important;
             }
             </style>
         """, unsafe_allow_html=True)
