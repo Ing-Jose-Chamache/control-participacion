@@ -110,25 +110,30 @@ class ControlParticipacion:
         
         st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
 
-    def cargar_archivo_txt(self):
-        archivo = st.file_uploader("CARGAR ARCHIVO DE ESTUDIANTES (TXT)", type=['txt'])
+    def cargar_archivo_txt(self, tipo):
+        archivo = st.file_uploader(f"CARGAR ARCHIVO {tipo.upper()}", type=['txt'])
         if archivo is not None:
             try:
                 contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
                 contenido = [linea.strip() for linea in contenido if linea.strip()]
                 
-                for estudiante in contenido:
-                    if estudiante not in st.session_state.estudiantes['Nombre'].values:
-                        nuevo_df = pd.DataFrame({
-                            'Nombre': [estudiante],
-                            'Participaciones': [0],
-                            'Puntaje': [0]
-                        })
-                        st.session_state.estudiantes = pd.concat(
-                            [st.session_state.estudiantes, nuevo_df],
-                            ignore_index=True
-                        )
-                st.success("Estudiantes cargados exitosamente")
+                if tipo == "estudiantes":
+                    for estudiante in contenido:
+                        if estudiante not in st.session_state.estudiantes['Nombre'].values:
+                            nuevo_df = pd.DataFrame({
+                                'Nombre': [estudiante],
+                                'Participaciones': [0],
+                                'Puntaje': [0]
+                            })
+                            st.session_state.estudiantes = pd.concat(
+                                [st.session_state.estudiantes, nuevo_df],
+                                ignore_index=True
+                            )
+                    st.success("Estudiantes cargados exitosamente")
+                
+                elif tipo == "preguntas":
+                    st.session_state.preguntas.extend(contenido)
+                    st.success("Preguntas cargadas exitosamente")
             except Exception as e:
                 st.error(f"Error al cargar el archivo: {str(e)}")
 
@@ -169,7 +174,7 @@ class ControlParticipacion:
                     else:
                         st.error("Este estudiante ya existe")
         with col3:
-            self.cargar_archivo_txt()
+            self.cargar_archivo_txt("estudiantes")
 
     def mostrar_estudiantes(self):
         col1, col2 = st.columns([3, 1])
