@@ -191,10 +191,7 @@ class ControlParticipacion:
                 <div style="text-align: center; margin: 20px 0;">
                     <img src="data:image/png;base64,{st.session_state.logo}" style="max-width: 400px; margin-bottom: 15px;"/>
                 </div>
-                <h1 class='title'>Control de Participación</h1>
             """, unsafe_allow_html=True)
-        else:
-            st.markdown("<h1 class='title'>Control de Participación</h1>", unsafe_allow_html=True)
 
     def cargar_archivo_txt(self, tipo):
         archivo = st.file_uploader(f"SUBE DATA AMIGO ({tipo})", type=['txt'], key=f"uploader_{tipo}")
