@@ -51,7 +51,7 @@ st.markdown("""
     }
     .question-completed {
         text-decoration: line-through;
-        color: #6c757d;
+        color: red;
     }
     .student-row {
         background-color: #ffffff;
@@ -70,6 +70,9 @@ st.markdown("""
         background-color: #f0f2f6;
         border-radius: 10px;
         margin-top: 30px;
+    }
+    .background {
+        background: url('https://www.transparenttextures.com/patterns/clean-gray-paper.png');
     }
     </style>
 """, unsafe_allow_html=True)
@@ -101,7 +104,7 @@ class ControlParticipacion:
         if st.session_state.logo:
             st.markdown(f"""
                 <div class="logo-container">
-                    <img src="data:image/png;base64,{st.session_state.logo}" width="300"/>
+                    <img src="data:image/png;base64,{st.session_state.logo}" width="345"/>
                 </div>
             """, unsafe_allow_html=True)
         
@@ -312,5 +315,4 @@ class ControlParticipacion:
 if __name__ == "__main__":
     app = ControlParticipacion()
     app.run()
-
-# Pepito Prueba
+    # Pepito Prueba 19_30_2025
