@@ -188,12 +188,13 @@ class ControlParticipacion:
     def mostrar_header(self):
         if st.session_state.logo:
             st.markdown(f"""
-                <div class="logo-container">
-                    <img src="data:image/png;base64,{st.session_state.logo}" width="300"/>
+                <div style="text-align: center; margin: 20px 0;">
+                    <img src="data:image/png;base64,{st.session_state.logo}" style="max-width: 400px; margin-bottom: 15px;"/>
                 </div>
+                <h1 class='title'>Control de Participación</h1>
             """, unsafe_allow_html=True)
-        
-        st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
+        else:
+            st.markdown("<h1 class='title'>Control de Participación</h1>", unsafe_allow_html=True)
 
     def cargar_archivo_txt(self, tipo):
         archivo = st.file_uploader(f"SUBE DATA AMIGO ({tipo})", type=['txt'], key=f"uploader_{tipo}")
