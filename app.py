@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 import base64
-from io import BytesIO
+from io import StringIO
 
 # Configuración de la página
 st.set_page_config(page_title="CONTROL DE PARTICIPACIÓN", layout="wide")
@@ -110,8 +110,30 @@ class ControlParticipacion:
         
         st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
 
+    def cargar_archivo_txt(self):
+        archivo = st.file_uploader("CARGAR ARCHIVO DE ESTUDIANTES (TXT)", type=['txt'])
+        if archivo is not None:
+            try:
+                contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
+                contenido = [linea.strip() for linea in contenido if linea.strip()]
+                
+                for estudiante in contenido:
+                    if estudiante not in st.session_state.estudiantes['Nombre'].values:
+                        nuevo_df = pd.DataFrame({
+                            'Nombre': [estudiante],
+                            'Participaciones': [0],
+                            'Puntaje': [0]
+                        })
+                        st.session_state.estudiantes = pd.concat(
+                            [st.session_state.estudiantes, nuevo_df],
+                            ignore_index=True
+                        )
+                st.success("Estudiantes cargados exitosamente")
+            except Exception as e:
+                st.error(f"Error al cargar el archivo: {str(e)}")
+
     def cargar_archivo_jpg(self):
-        archivo = st.file_uploader("CARGAR IMAGEN DE PREGUNTAS", type=['jpg', 'jpeg'])
+        archivo = st.file_uploader("CARGAR IMAGEN DE PREGUNTAS (JPG)", type=['jpg', 'jpeg'])
         if archivo is not None:
             try:
                 imagen = archivo.read()
@@ -147,7 +169,7 @@ class ControlParticipacion:
                     else:
                         st.error("Este estudiante ya existe")
         with col3:
-            self.cargar_archivo_jpg()
+            self.cargar_archivo_txt()
 
     def mostrar_estudiantes(self):
         col1, col2 = st.columns([3, 1])
