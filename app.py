@@ -20,21 +20,30 @@ st.markdown("""
     .stTextInput>div>div>input {
         padding: 0.5rem;
     }
-    /* Ocultar el texto de drag and drop y límite */
-    .stFileUploader [data-testid="stMarkdownContainer"] {
+    /* Ocultar todos los textos del uploader excepto el botón */
+    div[data-testid="stFileUploader"] div[data-testid="stMarkdownContainer"] {
         display: none !important;
     }
     
-    /* Estilo solo para el botón Browse files */
-    .stFileUploader button {
+    div[data-testid="stFileUploader"] > section > div:first-child {
+        display: none !important;
+    }
+    
+    div[data-testid="stFileUploader"] > section > p {
+        display: none !important;
+    }
+    
+    /* Mantener y estilizar solo el botón Browse files */
+    div[data-testid="stFileUploader"] button {
         font-size: 9.5px !important;
         font-family: 'Helvetica Neue', Arial, sans-serif !important;
         padding: 2px 8px !important;
     }
     
-    /* Ocultar el texto del límite de archivo */
-    .stFileUploader p {
-        display: none !important;
+    /* Eliminar el espacio que ocupaba el texto */
+    div[data-testid="stFileUploader"] > section {
+        min-height: auto !important;
+        padding: 0 !important;
     }
     .uploadedFile {
         width: 15%;
