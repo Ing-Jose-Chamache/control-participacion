@@ -92,12 +92,23 @@ st.markdown("""
         left: 10px;
     }
     .upload-students {
-        top: 70px;
+        bottom: 10px;
         left: 10px;
     }
     .upload-questions {
         bottom: 10px;
         right: 10px;
+    }
+    /* Ocultar flechas del input number */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+        padding: 5px;
+        font-size: 16px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -122,15 +133,18 @@ students_file = st.file_uploader("", type=['txt'], key="students")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if logo_file:
-    st.image(logo_file, width=200)
+    st.image(logo_file, width=260)  # 30% más grande (200 * 1.3 = 260)
 
 # Configuración inicial
 col1, col2, _ = st.columns([2, 1, 1])
 with col1:
     nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
 with col2:
-    num_preguntas = st.number_input("NÚMERO DE PREGUNTAS", min_value=1, value=5)
-    st.session_state.num_preguntas = num_preguntas
+    num_preguntas = st.text_input("NÚMERO DE PREGUNTAS", value="5", key="num_preguntas_input")
+    try:
+        st.session_state.num_preguntas = int(num_preguntas)
+    except ValueError:
+        st.error("Por favor ingrese un número válido")
 
 # Botón para agregar estudiante
 if st.button("AGREGAR ESTUDIANTE") and nuevo_estudiante:
