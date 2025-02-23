@@ -110,9 +110,9 @@ class ControlParticipacion:
                             [st.session_state.estudiantes, nuevo_df],
                             ignore_index=True
                         )
-                st.success("Excelente somos de otro nivel...")
+                st.success("Estudiantes cargados exitosamente")
             except Exception as e:
-                st.error(f"Carga de nuevo el archivo por favor somos SENATI: {str(e)}")
+                st.error(f"Error al cargar el archivo: {str(e)}")
 
     def eliminar_estudiante(self, nombre):
         st.session_state.estudiantes = st.session_state.estudiantes[
