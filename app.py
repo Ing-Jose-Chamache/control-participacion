@@ -165,23 +165,22 @@ st.markdown("""
 
 class ControlParticipacion:
     def __init__(self):
-        if 'estudiantes' not in st.session_state:
-            st.session_state.estudiantes = pd.DataFrame(
-                columns=['Nombre', 'Participaciones', 'Puntaje']
-            )
+        # Inicializar estados básicos
+        for key in ['estudiantes', 'preguntas', 'iconos_estado', 'file_key']:
+            if key not in st.session_state:
+                st.session_state[key] = [] if key in ['preguntas'] else {}
+                
+        # Configurar valores por defecto
         if 'participaciones_esperadas' not in st.session_state:
             st.session_state.participaciones_esperadas = 5
-        if 'preguntas' not in st.session_state:
-            st.session_state.preguntas = []
         if 'pregunta_actual' not in st.session_state:
             st.session_state.pregunta_actual = 0
-        if 'iconos_estado' not in st.session_state:
-            st.session_state.iconos_estado = {}
         if 'logo' not in st.session_state:
             st.session_state.logo = None
-
-        # Ocultar mensajes de error
+            
+        # Ocultar errores globalmente
         st.set_option('client.showErrorDetails', False)
+        st.set_option('client.showWarningOnDirectExecution', False)
         
         # Aplicar estilos para ocultar elementos no deseados
         self.aplicar_estilos()
@@ -275,14 +274,26 @@ class ControlParticipacion:
 
     def cargar_preguntas_txt(self):
         """Carga silenciosa y simple de preguntas."""
-        file = st.file_uploader("", type=['txt'], label_visibility="hidden")
-        if file:
-            contenido = file.getvalue().decode()
-            preguntas = [line.strip() for line in contenido.split('\n') if line.strip()]
-            if preguntas:
-                st.session_state.preguntas = preguntas
-                st.session_state.pregunta_actual = 0
-                st.rerun()
+        # Usar key específica y callback para mantener el estado
+        if 'file_key' not in st.session_state:
+            st.session_state.file_key = None
+            
+        file = st.file_uploader("", 
+                               type=['txt'], 
+                               label_visibility="hidden",
+                               key="preguntas_file")
+                               
+        # Solo procesar si el archivo es nuevo o ha cambiado
+        if file is not None and file != st.session_state.file_key:
+            st.session_state.file_key = file
+            try:
+                contenido = file.getvalue().decode()
+                preguntas = [line.strip() for line in contenido.split('\n') if line.strip()]
+                if preguntas:
+                    st.session_state.preguntas = preguntas
+                    st.session_state.pregunta_actual = 0
+            except:
+                pass  # Silenciar errores
 
     def eliminar_pregunta(self, index):
         if 0 <= index < len(st.session_state.preguntas):
