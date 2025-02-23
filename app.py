@@ -205,12 +205,11 @@ class ControlParticipacion:
         with col1:
             st.markdown("### GESTIÓN DE ESTUDIANTES")
         with col2:
-            st.session_state.participaciones_esperadas = st.number_input(
+            st.session_state.participaciones_esperadas = int(st.text_input(
                 "PARTICIPACIONES ESPERADAS",
-                min_value=1,
-                value=st.session_state.participaciones_esperadas,
-                step=1
-            )
+                value=str(st.session_state.participaciones_esperadas),
+                key="participaciones_input"
+            ) or 5)
 
         for _, estudiante in st.session_state.estudiantes.iterrows():
             with st.container():
@@ -228,8 +227,8 @@ class ControlParticipacion:
                         st.session_state.estudiantes.loc[idx, 'Participaciones'] += 1
                         # Cálculo exacto del puntaje
                         participaciones = st.session_state.estudiantes.loc[idx, 'Participaciones']
-                        puntaje = (participaciones / st.session_state.participaciones_esperadas) * 20
-                        st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(20, round(puntaje, 2))
+                        puntaje = (participaciones * 20) / st.session_state.participaciones_esperadas
+                        st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(20.0, round(puntaje, 1))
                 with cols[4]:
                     if st.button("-1", key=f"minus_{estudiante['Nombre']}"):
                         idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
@@ -237,8 +236,8 @@ class ControlParticipacion:
                             st.session_state.estudiantes.loc[idx, 'Participaciones'] -= 1
                             # Cálculo exacto del puntaje
                             participaciones = st.session_state.estudiantes.loc[idx, 'Participaciones']
-                            puntaje = (participaciones / st.session_state.participaciones_esperadas) * 20
-                            st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(20, round(puntaje, 2))
+                            puntaje = (participaciones * 20) / st.session_state.participaciones_esperadas
+                            st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(20.0, round(puntaje, 1))
                 with cols[5]:
                     if st.button("🗑️", key=f"delete_{estudiante['Nombre']}"):
                         self.eliminar_estudiante(estudiante['Nombre'])
