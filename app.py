@@ -224,7 +224,7 @@ if not st.session_state.estudiantes.empty:
             'Excelente (90-100%)': df_stats[df_stats['Porcentaje'] >= 90]['Nombre'].tolist(),
             'Bueno (70-89%)': df_stats[(df_stats['Porcentaje'] >= 70) & (df_stats['Porcentaje'] < 90)]['Nombre'].tolist(),
             'Regular (60-69%)': df_stats[(df_stats['Porcentaje'] >= 60) & (df_stats['Porcentaje'] < 70)]['Nombre'].tolist(),
-            'En riesgo (<60%)': df_stats[df_stats['Porcentaje'] < 60)]['Nombre'].tolist()
+            'En riesgo (<60%)': df_stats[df_stats['Porcentaje'] < 60]['Nombre'].tolist()
         }
         
         for nivel, estudiantes in niveles.items():
