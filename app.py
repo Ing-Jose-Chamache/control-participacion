@@ -20,29 +20,29 @@ st.markdown("""
     .stTextInput>div>div>input {
         padding: 0.5rem;
     }
-    /* Ocultar todos los textos del uploader excepto el botón */
-    div[data-testid="stFileUploader"] div[data-testid="stMarkdownContainer"] {
+    /* Eliminar textos de todos los uploaders */
+    div[data-testid="stFileUploader"] div[data-testid="stMarkdownContainer"],
+    div[data-testid="stFileUploader"] p,
+    div[data-testid="stFileUploader"] span[data-testid="stMarkdownContainer"] {
         display: none !important;
     }
-    
-    div[data-testid="stFileUploader"] > section > div:first-child {
-        display: none !important;
+
+    /* Ajustar el contenedor del uploader */
+    div[data-testid="stFileUploader"] section {
+        min-height: unset !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
     }
-    
-    div[data-testid="stFileUploader"] > section > p {
-        display: none !important;
-    }
-    
-    /* Mantener y estilizar solo el botón Browse files */
+
+    /* Estilo para el botón de Browse files */
     div[data-testid="stFileUploader"] button {
         font-size: 9.5px !important;
-        font-family: 'Helvetica Neue', Arial, sans-serif !important;
         padding: 2px 8px !important;
     }
-    
-    /* Eliminar el espacio que ocupaba el texto */
-    div[data-testid="stFileUploader"] > section {
-        min-height: auto !important;
+
+    /* Eliminar espacio adicional */
+    div[data-testid="stFileUploader"] > div:first-child {
+        margin: 0 !important;
         padding: 0 !important;
     }
     .uploadedFile {
