@@ -253,14 +253,17 @@ class ControlParticipacion:
             return False
 
     def cargar_preguntas_txt(self):
-        archivo = st.file_uploader("CARGAR PREGUNTAS (TXT)", type=['txt'], key="preguntas_uploader")
-        if archivo is not None:
-            try:
-                contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
-                st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
-                st.success("Preguntas cargadas exitosamente")
-            except Exception as e:
-                st.error(f"Error al cargar preguntas: {str(e)}")
+        col1, col2 = st.columns([1, 11])
+        with col1:
+            archivo = st.file_uploader("", type=['txt'], key="preguntas_uploader", 
+                                     help="Cargar archivo de preguntas")
+            if archivo is not None:
+                try:
+                    contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
+                    st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
+                    st.success("✅")
+                except Exception as e:
+                    st.error("❌")
 
     def eliminar_pregunta(self, index):
         if 0 <= index < len(st.session_state.preguntas):
@@ -504,12 +507,6 @@ class ControlParticipacion:
         self.mostrar_header()
         
         # Sección de preguntas arriba al centro
-        st.markdown("""
-            <div style='max-width: 800px; margin: 20px auto;'>
-                <h3 style='text-align: center; color: #1f1f1f; margin-bottom: 20px;'>PREGUNTAS</h3>
-            </div>
-        """, unsafe_allow_html=True)
-        
         if 'preguntas' in st.session_state and st.session_state.preguntas:
             # Contenedor para el carrusel de preguntas
             st.markdown("""
@@ -518,30 +515,27 @@ class ControlParticipacion:
                     background-color: #ffffff;
                     border: 2px solid #e1e4e8;
                     border-radius: 12px;
-                    padding: 20px;
-                    margin: 10px auto;
-                    max-width: 800px;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    padding: 30px;
+                    margin: 20px auto;
+                    max-width: 900px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
                     position: relative;
                 }
                 .pregunta-numero {
                     position: absolute;
-                    top: 10px;
-                    right: 10px;
-                    color: #6c757d;
+                    top: 15px;
+                    right: 20px;
+                    color: #4a90e2;
                     font-weight: 500;
+                    font-size: 1.1em;
                 }
                 .pregunta-texto {
-                    font-size: 1.1em;
+                    font-size: 1.4em;
                     line-height: 1.6;
-                    color: #2c3e50;
-                    padding: 10px 0;
-                }
-                .pregunta-nav {
-                    display: flex;
-                    justify-content: center;
-                    gap: 20px;
-                    margin: 15px 0;
+                    color: #2e86de;
+                    padding: 15px 0;
+                    text-align: center;
+                    font-weight: 500;
                 }
                 </style>
             """, unsafe_allow_html=True)
@@ -561,7 +555,7 @@ class ControlParticipacion:
                 total_preguntas = len(st.session_state.preguntas)
                 st.markdown(f"""
                     <div class="pregunta-card">
-                        <div class="pregunta-numero">Pregunta {st.session_state.pregunta_actual + 1}/{total_preguntas}</div>
+                        <div class="pregunta-numero">{st.session_state.pregunta_actual + 1}/{total_preguntas}</div>
                         <div class="pregunta-texto">{st.session_state.preguntas[st.session_state.pregunta_actual]}</div>
                     </div>
                 """, unsafe_allow_html=True)
