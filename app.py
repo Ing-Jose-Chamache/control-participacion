@@ -173,10 +173,27 @@ class ControlParticipacion:
             st.session_state.participaciones_esperadas = 5
         if 'preguntas' not in st.session_state:
             st.session_state.preguntas = []
-        if 'preguntas_completadas' not in st.session_state:
-            st.session_state.preguntas_completadas = set()
+        if 'pregunta_actual' not in st.session_state:
+            st.session_state.pregunta_actual = 0
+        if 'iconos_estado' not in st.session_state:
+            st.session_state.iconos_estado = {}
         if 'logo' not in st.session_state:
             st.session_state.logo = None
+        
+        # Aplicar estilos globales
+        st.markdown("""
+            <style>
+            .main {
+                background-color: #E3F2FD !important;
+            }
+            .stApp {
+                background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 50%, #E3F2FD 100%) !important;
+            }
+            div[data-testid="stAppViewContainer"] {
+                background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 50%, #E3F2FD 100%) !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
 
     def cargar_logo(self):
         with st.container():
@@ -251,21 +268,18 @@ class ControlParticipacion:
             return False
 
     def cargar_preguntas_txt(self):
-        col1, col2 = st.columns([1, 11])
-        with col1:
-            archivo = st.file_uploader("", type=['txt'], key="preguntas_uploader", 
-                                     help="Cargar archivo de preguntas")
-            if archivo is not None:
-                try:
-                    contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
-                    preguntas = [linea.strip() for linea in contenido if linea.strip()]
-                    if preguntas:
-                        st.session_state.preguntas = preguntas
-                        st.session_state.pregunta_actual = 0
-                        st.success("✅")
-                        st.rerun()  # Forzar actualización inmediata
-                except Exception as e:
-                    st.error("❌")
+        archivo = st.file_uploader("📄", type=['txt'], key="preguntas_uploader", 
+                                 help="Cargar archivo de preguntas")
+        if archivo is not None:
+            try:
+                contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
+                preguntas = [linea.strip() for linea in contenido if linea.strip()]
+                if preguntas:
+                    st.session_state.preguntas = preguntas
+                    st.session_state.pregunta_actual = 0
+                    st.experimental_rerun()
+            except Exception as e:
+                st.error("Error al cargar el archivo")
 
     def eliminar_pregunta(self, index):
         if 0 <= index < len(st.session_state.preguntas):
