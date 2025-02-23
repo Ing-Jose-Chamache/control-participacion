@@ -105,7 +105,7 @@ st.markdown("""
     
     /* Estilo para los botones de puntos */
     .stButton button:contains("⬤") {
-        color: #cccccc !important;
+        color: #000000 !important;  /* Puntos inactivos en negro */
         background-color: transparent !important;
         border: none !important;
         transition: color 0.3s ease;
@@ -118,18 +118,25 @@ st.markdown("""
         color: #FFD700 !important;
     }
     
-    /* Botón de eliminar */
+    /* Botón de eliminar individual */
     .stButton button:contains("🗑️") {
-        color: #ff4b4b;
-        background-color: transparent;
-        border: none;
+        color: #ff4b4b !important;
+        background-color: transparent !important;
+        border: 1px solid #ff4b4b !important;
+        border-radius: 4px;
     }
     
     /* Botón de eliminar todos */
     .stButton button:contains("ELIMINAR TODOS") {
-        background-color: #ff4b4b;
-        color: white;
+        background-color: #ff4b4b !important;
+        color: white !important;
         margin-top: 20px;
+    }
+    
+    /* Botón de reiniciar puntos */
+    .stButton button:contains("REINICIAR PUNTOS") {
+        background-color: #1e88e5 !important;
+        color: white !important;
     }
     
     .student-row {
@@ -268,7 +275,7 @@ class ControlParticipacion:
             self.cargar_archivo_txt("estudiantes")
 
     def mostrar_estudiantes(self):
-        col1, col2 = st.columns([3, 1])
+        col1, col2, col3 = st.columns([3, 1, 1])
         with col1:
             st.markdown("### GESTIÓN DE ESTUDIANTES")
         with col2:
@@ -277,6 +284,14 @@ class ControlParticipacion:
                 value=str(st.session_state.participaciones_esperadas),
                 key="participaciones_input"
             ) or 5)
+        with col3:
+            if st.button("🔄 REINICIAR PUNTOS", type="secondary", help="Reiniciar todos los puntos a cero"):
+                for nombre in st.session_state.iconos_estado:
+                    st.session_state.iconos_estado[nombre] = [False] * st.session_state.participaciones_esperadas
+                # Reiniciar puntajes en el DataFrame
+                st.session_state.estudiantes['Participaciones'] = 0
+                st.session_state.estudiantes['Puntaje'] = 0.0
+                st.rerun()
 
         # Inicializar el estado de los iconos si no existe
         if 'iconos_estado' not in st.session_state:
@@ -320,18 +335,24 @@ class ControlParticipacion:
                     st.write(f"Nota: {round(puntaje, 1)}")
                 
                 with cols[3]:
-                    if st.button("🗑️", key=f"delete_{nombre}", 
-                               help="Eliminar estudiante",
-                               on_click=lambda: self.eliminar_estudiante(nombre)):
-                        st.rerun()
+                    if st.button("🗑️", key=f"delete_{nombre}", help="Eliminar estudiante"):
+                        if st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == nombre].shape[0] > 0:
+                            self.eliminar_estudiante(nombre)
+                            del st.session_state.iconos_estado[nombre]
+                            st.success(f"Estudiante {nombre} eliminado")
+                            st.rerun()
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
-        if len(st.session_state.estudiantes) > 0:
-            if st.button("ELIMINAR TODOS LOS ESTUDIANTES", type="secondary",
-                        help="Eliminar toda la lista de estudiantes",
-                        on_click=self.limpiar_lista_estudiantes):
-                st.rerun()
+        # Botones de control al final
+        col1, col2 = st.columns(2)
+        with col1:
+            if len(st.session_state.estudiantes) > 0:
+                if st.button("❌ ELIMINAR TODOS", type="secondary", 
+                           help="Eliminar todos los estudiantes",
+                           use_container_width=True):
+                    self.limpiar_lista_estudiantes()
+                    st.rerun()
 
     def mostrar_graficos(self):
         if not st.session_state.estudiantes.empty:
