@@ -258,8 +258,12 @@ class ControlParticipacion:
             if archivo is not None:
                 try:
                     contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
-                    st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
-                    st.success("✅")
+                    preguntas = [linea.strip() for linea in contenido if linea.strip()]
+                    if preguntas:
+                        st.session_state.preguntas = preguntas
+                        st.session_state.pregunta_actual = 0
+                        st.success("✅")
+                        st.rerun()  # Forzar actualización inmediata
                 except Exception as e:
                     st.error("❌")
 
