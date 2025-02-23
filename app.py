@@ -21,12 +21,27 @@ st.markdown("""
         padding: 0.5rem;
     }
     .stFileUploader {
-        width: 15%;
-        padding: 1px;
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        font-size: 8px;
+        font-weight: 300;
+        color: #666;
+        letter-spacing: 0.5px;
     }
-    div[data-testid="stFileUploader"] {
-        width: 15%;
-        padding: 1px;
+    div[data-testid="stFileUploader"] p {
+        font-size: 8px !important;
+        font-family: 'Helvetica Neue', Arial, sans-serif !important;
+        color: #666 !important;
+        letter-spacing: 0.5px !important;
+    }
+    .stFileUploader label {
+        font-size: 8px !important;
+        font-family: 'Helvetica Neue', Arial, sans-serif !important;
+        color: #666 !important;
+    }
+    .stFileUploader button {
+        font-size: 8px !important;
+        font-family: 'Helvetica Neue', Arial, sans-serif !important;
+        padding: 2px 8px !important;
     }
     .uploadedFile {
         width: 15%;
