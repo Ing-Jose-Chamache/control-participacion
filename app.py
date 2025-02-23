@@ -1,204 +1,144 @@
-import tkinter as tk
-from tkinter import filedialog, ttk
-from PIL import Image, ImageTk
-import os
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentación de Preguntas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .logo-container {
+            aspect-ratio: 1;
+            background: #2d3748;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .logo-preview {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen p-4 md:p-8">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Panel Logo -->
+        <div class="bg-gray-800 rounded-xl p-6 flex flex-col items-center">
+            <button onclick="document.getElementById('logoInput').click()" 
+                    class="mb-4 bg-blue-600 hover:bg-blue-700 text-white w-12 h-12 rounded-full flex items-center justify-center transition-colors">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
+            <input type="file" id="logoInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+            <div id="logoContainer" class="logo-container w-full">
+                <p class="text-gray-400">Área del Logo</p>
+            </div>
+        </div>
 
-class VisorPresentacion:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Presentación de Preguntas")
-        
-        # Configurar tema y colores
-        self.root.configure(bg='#2c3e50')
-        self.root.state('zoomed')  # Iniciar maximizado
-        
-        # Variables
-        self.preguntas = []
-        self.indice_actual = 0
-        self.imagen_logo = None
-        
-        # Frame principal
-        self.frame_principal = tk.Frame(root, bg='#2c3e50')
-        self.frame_principal.pack(expand=True, fill='both', padx=40, pady=40)
-        
-        # Panel izquierdo (Logo)
-        self.frame_logo = tk.Frame(
-            self.frame_principal,
-            bg='#34495e',
-            highlightbackground='#1a252f',
-            highlightthickness=2
-        )
-        self.frame_logo.pack(side='left', fill='both', expand=True, padx=(0,20))
-        
-        # Botón de carga de logo
-        self.btn_cargar = tk.Button(
-            self.frame_logo,
-            text="+",
-            command=self.cargar_logo,
-            font=('Helvetica', 30, 'bold'),
-            bg='#3498db',
-            fg='white',
-            relief='flat',
-            width=2,
-            cursor='hand2'
-        )
-        self.btn_cargar.pack(pady=(20,0))
-        
-        # Área del logo
-        self.lbl_logo = tk.Label(
-            self.frame_logo,
-            bg='#34495e',
-            width=50,
-            height=25
-        )
-        self.lbl_logo.pack(pady=20, padx=20, expand=True)
-        
-        # Panel derecho (Preguntas)
-        self.frame_preguntas = tk.Frame(
-            self.frame_principal,
-            bg='#ecf0f1',
-            highlightbackground='#bdc3c7',
-            highlightthickness=1
-        )
-        self.frame_preguntas.pack(side='right', fill='both', expand=True)
-        
-        # Área de texto para preguntas
-        self.texto_pregunta = tk.Text(
-            self.frame_preguntas,
-            font=('Helvetica', 36, 'bold'),
-            fg='#2c3e50',
-            bg='#ecf0f1',
-            relief='flat',
-            height=8,
-            width=30,
-            wrap='word'
-        )
-        self.texto_pregunta.pack(expand=True, fill='both', padx=30, pady=30)
-        self.texto_pregunta.tag_configure('center', justify='center')
-        self.texto_pregunta.tag_add('center', '1.0', 'end')
-        
-        # Panel de control
-        self.frame_control = tk.Frame(self.frame_preguntas, bg='#ecf0f1')
-        self.frame_control.pack(side='bottom', fill='x', pady=20)
-        
-        # Botón cargar preguntas
-        self.btn_cargar_txt = tk.Button(
-            self.frame_control,
-            text="Cargar TXT",
-            command=self.cargar_preguntas,
-            font=('Helvetica', 12),
-            bg='#3498db',
-            fg='white',
-            relief='flat',
-            cursor='hand2',
-            padx=20,
-            pady=10
-        )
-        self.btn_cargar_txt.pack(side='left', padx=30)
-        
-        # Navegación
-        self.frame_nav = tk.Frame(self.frame_control, bg='#ecf0f1')
-        self.frame_nav.pack(side='right', padx=30)
-        
-        self.btn_anterior = tk.Button(
-            self.frame_nav,
-            text="←",
-            command=self.anterior_pregunta,
-            font=('Helvetica', 24),
-            bg='#2c3e50',
-            fg='white',
-            relief='flat',
-            cursor='hand2',
-            width=2,
-            state='disabled'
-        )
-        self.btn_anterior.pack(side='left', padx=10)
-        
-        self.lbl_contador = tk.Label(
-            self.frame_nav,
-            text="0 / 0",
-            font=('Helvetica', 14),
-            bg='#ecf0f1',
-            fg='#2c3e50'
-        )
-        self.lbl_contador.pack(side='left', padx=20)
-        
-        self.btn_siguiente = tk.Button(
-            self.frame_nav,
-            text="→",
-            command=self.siguiente_pregunta,
-            font=('Helvetica', 24),
-            bg='#2c3e50',
-            fg='white',
-            relief='flat',
-            cursor='hand2',
-            width=2,
-            state='disabled'
-        )
-        self.btn_siguiente.pack(side='left', padx=10)
+        <!-- Panel Preguntas -->
+        <div class="bg-white rounded-xl p-6 flex flex-col min-h-[500px]">
+            <div class="flex-grow flex flex-col items-center justify-center p-8">
+                <div id="questionContainer" class="text-center">
+                    <button onclick="document.getElementById('txtInput').click()"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Cargar Preguntas
+                    </button>
+                    <input type="file" id="txtInput" accept=".txt" class="hidden" onchange="handleTxtUpload(event)">
+                </div>
+            </div>
 
-    def cargar_logo(self):
-        """Cargar y mostrar logo"""
-        tipos = [("Archivos PNG", "*.png"), ("Todos los archivos", "*.*")]
-        ruta = filedialog.askopenfilename(filetypes=tipos)
-        if ruta:
-            try:
-                imagen = Image.open(ruta)
-                # Calcular tamaño manteniendo proporción
-                ancho = self.frame_logo.winfo_width() - 40
-                alto = self.frame_logo.winfo_height() - 100
-                ratio = min(ancho/imagen.width, alto/imagen.height)
-                nuevo_ancho = int(imagen.width * ratio)
-                nuevo_alto = int(imagen.height * ratio)
-                imagen = imagen.resize((nuevo_ancho, nuevo_alto), Image.Resampling.LANCZOS)
-                self.imagen_logo = ImageTk.PhotoImage(imagen)
-                self.lbl_logo.config(image=self.imagen_logo)
-            except Exception as e:
-                tk.messagebox.showerror("Error", f"Error al cargar la imagen: {str(e)}")
+            <!-- Navegación -->
+            <div id="navigation" class="flex items-center justify-between px-4 hidden">
+                <button onclick="previousQuestion()" id="prevBtn"
+                        class="p-2 rounded-full bg-gray-800 text-white hover:bg-gray-700 disabled:bg-gray-200 disabled:text-gray-400">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <span id="counter" class="text-gray-600 font-medium"></span>
+                <button onclick="nextQuestion()" id="nextBtn"
+                        class="p-2 rounded-full bg-gray-800 text-white hover:bg-gray-700 disabled:bg-gray-200 disabled:text-gray-400">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
 
-    def cargar_preguntas(self):
-        """Cargar preguntas desde archivo TXT"""
-        tipos = [("Archivos de texto", "*.txt"), ("Todos los archivos", "*.*")]
-        ruta = filedialog.askopenfilename(filetypes=tipos)
-        if ruta:
-            try:
-                with open(ruta, 'r', encoding='utf-8') as archivo:
-                    self.preguntas = [linea.strip() for linea in archivo if linea.strip()]
-                if self.preguntas:
-                    self.indice_actual = 0
-                    self.mostrar_pregunta_actual()
-                    self.actualizar_botones()
-            except Exception as e:
-                tk.messagebox.showerror("Error", f"Error al cargar el archivo: {str(e)}")
+    <script>
+        let questions = [];
+        let currentQuestion = 0;
 
-    def mostrar_pregunta_actual(self):
-        """Mostrar la pregunta actual"""
-        if 0 <= self.indice_actual < len(self.preguntas):
-            self.texto_pregunta.delete('1.0', tk.END)
-            self.texto_pregunta.insert('1.0', self.preguntas[self.indice_actual])
-            self.texto_pregunta.tag_add('center', '1.0', 'end')
-            self.lbl_contador.config(text=f"{self.indice_actual + 1} / {len(self.preguntas)}")
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const container = document.getElementById('logoContainer');
+                    container.innerHTML = `<img src="${e.target.result}" class="logo-preview fade-in" alt="Logo">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
 
-    def siguiente_pregunta(self):
-        """Mostrar siguiente pregunta"""
-        if self.indice_actual < len(self.preguntas) - 1:
-            self.indice_actual += 1
-            self.mostrar_pregunta_actual()
-            self.actualizar_botones()
+        function handleTxtUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    questions = e.target.result.split('\n').filter(q => q.trim());
+                    if (questions.length > 0) {
+                        currentQuestion = 0;
+                        showQuestion();
+                        document.getElementById('navigation').classList.remove('hidden');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
 
-    def anterior_pregunta(self):
-        """Mostrar pregunta anterior"""
-        if self.indice_actual > 0:
-            self.indice_actual -= 1
-            self.mostrar_pregunta_actual()
-            self.actualizar_botones()
+        function showQuestion() {
+            const container = document.getElementById('questionContainer');
+            container.innerHTML = `<h1 class="text-4xl font-bold text-gray-800 fade-in">${questions[currentQuestion]}</h1>`;
+            updateNavigation();
+        }
 
-    def actualizar_botones(self):
-        """Actualizar estado de los botones de navegación"""
-        self.btn_anterior['state'] = 'normal' if self.indice_actual > 0 else 'disabled'
-        self.btn_siguiente['state'] = 'normal' if self.indice_actual < len(self.preguntas) - 1 else 'disabled'
+        function nextQuestion() {
+            if (currentQuestion < questions.length - 1) {
+                currentQuestion++;
+                showQuestion();
+            }
+        }
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = VisorPresentacion(root)
-    root.mainloop()
+        function previousQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                showQuestion();
+            }
+        }
+
+        function updateNavigation() {
+            document.getElementById('counter').textContent = `${currentQuestion + 1} / ${questions.length}`;
+            document.getElementById('prevBtn').disabled = currentQuestion === 0;
+            document.getElementById('nextBtn').disabled = currentQuestion === questions.length - 1;
+        }
+    </script>
+</body>
+</html>
