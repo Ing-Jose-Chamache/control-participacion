@@ -207,13 +207,36 @@ class ControlParticipacion:
                 if logo_file is not None:
                     st.session_state.logo = base64.b64encode(logo_file.read()).decode()
 
-    def mostrar_header(self):
-        if st.session_state.logo:
-            st.markdown(f"""
-                <div style="text-align: center; margin: 20px 0;">
-                    <img src="data:image/png;base64,{st.session_state.logo}" style="max-width: 400px; margin-bottom: 15px;"/>
-                </div>
-            """, unsafe_allow_html=True)
+    def mostrar_imagen_actual(self):
+        """Muestra la imagen actual con controles de navegación."""
+        if 'imagenes' in st.session_state and st.session_state.imagenes:
+            col1, col2, col3 = st.columns([1, 6, 1])
+            
+            with col1:
+                if st.button("⬅️", 
+                           key="prev_image", 
+                           disabled=st.session_state.imagen_actual == 0,
+                           help="Imagen anterior"):
+                    st.session_state.imagen_actual = max(0, st.session_state.imagen_actual - 1)
+            
+            with col2:
+                total_imagenes = len(st.session_state.imagenes)
+                imagen_actual = st.session_state.imagenes[st.session_state.imagen_actual]
+                
+                st.markdown(f"""
+                    <div class="imagen-card">
+                        <div class="imagen-numero">{st.session_state.imagen_actual + 1}/{total_imagenes}</div>
+                        <img src="data:image/jpeg;base64,{imagen_actual['data']}" 
+                             style="width: 100%; height: auto; object-fit: contain;">
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            with col3:
+                if st.button("➡️", 
+                           key="next_image", 
+                           disabled=st.session_state.imagen_actual >= total_imagenes - 1,
+                           help="Siguiente imagen"):
+                    st.session_state.imagen_actual = min(total_imagenes - 1, st.session_state.imagen_actual + 1)
 
     def cargar_archivo_txt(self, tipo):
         archivo = st.file_uploader(f"SUBE DATA AMIGO ({tipo})", type=['txt'], key=f"uploader_{tipo}")
@@ -272,26 +295,30 @@ class ControlParticipacion:
             st.error(f"Error al limpiar lista: {str(e)}")
             return False
 
-    def cargar_preguntas_txt(self):
-        """Carga silenciosa y simple de preguntas."""
-        # Usar key específica y callback para mantener el estado
-        if 'file_key' not in st.session_state:
-            st.session_state.file_key = None
+    def cargar_imagenes(self):
+        """Carga silenciosa de imágenes."""
+        if 'imagenes' not in st.session_state:
+            st.session_state.imagenes = []
+            st.session_state.imagen_actual = 0
             
         file = st.file_uploader("", 
-                               type=['txt'], 
+                               type=['jpg', 'jpeg', 'png'], 
                                label_visibility="hidden",
-                               key="preguntas_file")
+                               key="imagen_file")
                                
-        # Solo procesar si el archivo es nuevo o ha cambiado
-        if file is not None and file != st.session_state.file_key:
-            st.session_state.file_key = file
+        if file is not None:
             try:
-                contenido = file.getvalue().decode()
-                preguntas = [line.strip() for line in contenido.split('\n') if line.strip()]
-                if preguntas:
-                    st.session_state.preguntas = preguntas
-                    st.session_state.pregunta_actual = 0
+                # Convertir la imagen a base64
+                imagen_bytes = file.getvalue()
+                imagen_b64 = base64.b64encode(imagen_bytes).decode()
+                
+                # Agregar la imagen si no existe
+                if imagen_b64 not in [img['data'] for img in st.session_state.imagenes]:
+                    st.session_state.imagenes.append({
+                        'data': imagen_b64,
+                        'nombre': file.name
+                    })
+                    st.session_state.imagen_actual = len(st.session_state.imagenes) - 1
             except:
                 pass  # Silenciar errores
 
