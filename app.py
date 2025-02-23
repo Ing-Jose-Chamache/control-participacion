@@ -12,15 +12,9 @@ st.set_page_config(page_title="CONTROL DE PARTICIPACIÓN", layout="wide")
 # Aplicar estilo personalizado
 st.markdown("""
     <style>
-    .main {
-        padding: 2rem;
-    }
-    .stButton>button {
-        width: 100%;
-    }
-    .stTextInput>div>div>input {
-        padding: 0.5rem;
-    }
+    .main { padding: 2rem; }
+    .stButton>button { width: 100%; }
+    .stTextInput>div>div>input { padding: 0.5rem; }
     div[data-testid="stFileUploader"] div[data-testid="stMarkdownContainer"],
     div[data-testid="stFileUploader"] p,
     div[data-testid="stFileUploader"] span[data-testid="stMarkdownContainer"] {
@@ -39,17 +33,9 @@ st.markdown("""
         margin: 0 !important;
         padding: 0 !important;
     }
-    .uploadedFile {
-        width: 15%;
-    }
-    .stFileUploader > section {
-        width: 15%;
-        padding: 1px;
-    }
-    .stFileUploader > div > div {
-        width: 15%;
-        padding: 1px;
-    }
+    .uploadedFile { width: 15%; }
+    .stFileUploader > section { width: 15%; padding: 1px; }
+    .stFileUploader > div > div { width: 15%; padding: 1px; }
     .title {
         text-transform: uppercase;
         text-align: center;
@@ -69,9 +55,7 @@ st.markdown("""
         margin: 2px 0 20px 2px;
         max-width: 200px;
     }
-    .student-section {
-        font-size: 1.1em;
-    }
+    .student-section { font-size: 1.1em; }
     .question-box {
         background-color: #f8f9fa;
         border: 1px solid #ddd;
@@ -91,9 +75,7 @@ st.markdown("""
         gap: 5px;
         align-items: center;
     }
-    .stButton button {
-        padding: 0 10px;
-    }
+    .stButton button { padding: 0 10px; }
     .stButton button:contains("⬤") {
         color: #000000 !important;
         background-color: transparent !important;
@@ -129,16 +111,39 @@ st.markdown("""
         display: flex;
         align-items: center;
     }
-    .student-controls {
-        display: flex;
-        gap: 10px;
-    }
+    .student-controls { display: flex; gap: 10px; }
     .credits {
         text-align: center;
         padding: 20px;
         background-color: #f0f2f6;
         border-radius: 10px;
         margin-top: 30px;
+    }
+    .pregunta-card {
+        background-color: #ffffff;
+        border: 2px solid #e1e4e8;
+        border-radius: 12px;
+        padding: 30px;
+        margin: 20px auto;
+        max-width: 900px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        position: relative;
+    }
+    .pregunta-numero {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        color: #4a90e2;
+        font-weight: 500;
+        font-size: 1.1em;
+    }
+    .pregunta-texto {
+        font-size: 1.4em;
+        line-height: 1.6;
+        color: #2e86de;
+        padding: 15px 0;
+        text-align: center;
+        font-weight: 500;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -171,12 +176,14 @@ class ControlParticipacion:
         if st.session_state.logo:
             st.markdown(f"""
                 <div style="text-align: center; margin: 20px 0;">
-                    <img src="data:image/png;base64,{st.session_state.logo}" style="max-width: 400px; margin-bottom: 15px;"/>
+                    <img src="data:image/png;base64,{st.session_state.logo}" 
+                    style="max-width: 400px; margin-bottom: 15px;"/>
                 </div>
             """, unsafe_allow_html=True)
 
     def cargar_archivo_txt(self, tipo):
-        archivo = st.file_uploader(f"SUBE DATA AMIGO ({tipo})", type=['txt'], key=f"uploader_{tipo}")
+        archivo = st.file_uploader(f"SUBE DATA AMIGO ({tipo})", type=['txt'], 
+                                 key=f"uploader_{tipo}")
         if archivo is not None:
             try:
                 contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
@@ -202,11 +209,9 @@ class ControlParticipacion:
         try:
             if nombre in st.session_state.iconos_estado:
                 del st.session_state.iconos_estado[nombre]
-            
             st.session_state.estudiantes = st.session_state.estudiantes[
                 st.session_state.estudiantes['Nombre'] != nombre
             ].reset_index(drop=True)
-            
             return True
         except Exception as e:
             st.error(f"Error al eliminar estudiante: {str(e)}")
@@ -232,7 +237,64 @@ class ControlParticipacion:
     def limpiar_preguntas(self):
         st.session_state.preguntas = []
         return True
-        def agregar_estudiante(self):
+
+    def mostrar_preguntas(self):
+        # Agregar preguntas manualmente
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            nueva_pregunta = st.text_input("INGRESE NUEVA PREGUNTA:", key="input_pregunta")
+        with col2:
+            if st.button("AGREGAR PREGUNTA", key="btn_agregar_pregunta"):
+                if nueva_pregunta.strip():
+                    st.session_state.preguntas.append(nueva_pregunta.strip())
+                    st.success("¡Pregunta agregada exitosamente!")
+                    st.session_state.input_pregunta = ""
+                    st.rerun()
+                else:
+                    st.error("Por favor, ingrese una pregunta válida")
+
+        if st.session_state.preguntas:
+            col1, col2, col3 = st.columns([1, 6, 1])
+            
+            with col1:
+                if st.button("⬅️", key="prev_question", 
+                           disabled=st.session_state.pregunta_actual == 0):
+                    st.session_state.pregunta_actual = max(0, st.session_state.pregunta_actual - 1)
+                    st.rerun()
+            
+            with col2:
+                total_preguntas = len(st.session_state.preguntas)
+                st.markdown(f"""
+                    <div class="pregunta-card">
+                        <div class="pregunta-numero">{st.session_state.pregunta_actual + 1}/{total_preguntas}</div>
+                        <div class="pregunta-texto">{st.session_state.preguntas[st.session_state.pregunta_actual]}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                col_del, col_clear = st.columns(2)
+                with col_del:
+                    if st.button("🗑️ Eliminar Pregunta", key="del_current", type="secondary"):
+                        if self.eliminar_pregunta(st.session_state.pregunta_actual):
+                            if st.session_state.pregunta_actual >= len(st.session_state.preguntas):
+                                st.session_state.pregunta_actual = max(0, len(st.session_state.preguntas) - 1)
+                            st.success("Pregunta eliminada")
+                            st.rerun()
+                
+                with col_clear:
+                    if st.button("🗑️ Eliminar Todas", key="clear_questions", type="secondary"):
+                        if self.limpiar_preguntas():
+                            st.session_state.pregunta_actual = 0
+                            st.success("Todas las preguntas eliminadas")
+                            st.rerun()
+            
+            with col3:
+                if st.button("➡️", key="next_question", 
+                           disabled=st.session_state.pregunta_actual >= total_preguntas - 1):
+                    st.session_state.pregunta_actual = min(total_preguntas - 1, 
+                                                         st.session_state.pregunta_actual + 1)
+                    st.rerun()
+
+    def agregar_estudiante(self):
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
             nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
@@ -278,72 +340,3 @@ class ControlParticipacion:
             
             if nombre not in st.session_state.iconos_estado:
                 st.session_state.iconos_estado[nombre] = [False] * st.session_state.participaciones_esperadas
-
-            with st.container():
-                st.markdown(f'<div class="student-row">', unsafe_allow_html=True)
-                cols = st.columns([3, 4, 2, 1])
-                
-                with cols[0]:
-                    st.write(f"**{nombre}**")
-                
-                with cols[1]:
-                    for i in range(st.session_state.participaciones_esperadas):
-                        icon_key = f"icon_{nombre}_{i}"
-                        is_active = st.session_state.iconos_estado[nombre][i]
-                        if st.button("⬤", key=icon_key, 
-                                   type="secondary" if is_active else "primary"):
-                            if not is_active:
-                                st.session_state.iconos_estado[nombre][i] = True
-                                participaciones = sum(st.session_state.iconos_estado[nombre])
-                                idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == nombre].index[0]
-                                st.session_state.estudiantes.loc[idx, 'Participaciones'] = participaciones
-                                puntaje = (participaciones * 20) / st.session_state.participaciones_esperadas
-                                st.session_state.estudiantes.loc[idx, 'Puntaje'] = round(puntaje, 1)
-                                st.rerun()
-                
-                with cols[2]:
-                    participaciones = sum(st.session_state.iconos_estado[nombre])
-                    puntaje = (participaciones * 20) / st.session_state.participaciones_esperadas
-                    st.write(f"Nota: {round(puntaje, 1)}")
-                
-                with cols[3]:
-                    if st.button("🗑️", key=f"delete_{nombre}"):
-                        if self.eliminar_estudiante(nombre):
-                            st.success(f"Estudiante {nombre} eliminado exitosamente")
-                            time.sleep(0.1)
-                            st.rerun()
-                
-                st.markdown('</div>', unsafe_allow_html=True)
-
-        col1, col2 = st.columns(2)
-        with col1:
-            if len(st.session_state.estudiantes) > 0:
-                if st.button("❌ ELIMINAR TODOS", type="secondary", 
-                           use_container_width=True):
-                    self.limpiar_lista_estudiantes()
-                    st.rerun()
-
-    def mostrar_graficos(self):
-        if not st.session_state.estudiantes.empty:
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                fig_bar = px.bar(
-                    st.session_state.estudiantes,
-                    x='Nombre',
-                    y='Participaciones',
-                    title='PARTICIPACIONES POR ESTUDIANTE',
-                    color='Participaciones',
-                    color_continuous_scale='Viridis'
-                )
-                fig_bar.update_layout(
-                    title_x=0.5,
-                    title_font_size=20
-                )
-                st.plotly_chart(fig_bar, use_container_width=True)
-            
-            with col2:
-                datos_torta = st.session_state.estudiantes.copy()
-                total_participaciones = datos_torta['Participaciones'].sum()
-                if total_participaciones > 0:
-                    datos_torta['
