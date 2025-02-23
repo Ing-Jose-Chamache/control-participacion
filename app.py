@@ -14,69 +14,73 @@ st.markdown("""
     .main {
         padding: 2rem;
     }
-    .stButton>button {
-        width: 100%;
+    .logo-upload {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 50px;
+        height: 50px;
+        opacity: 0.7;
     }
-    .stTextInput>div>div>input {
-        padding: 0.5rem;
+    .logo-container img {
+        width: 396px;
+        margin-top: -20px;
     }
     .title {
         text-transform: uppercase;
         text-align: center;
         font-weight: bold;
-        font-size: 2.5em;
+        font-size: 3em;
+        color: #4CAF50;
+        text-shadow: 2px 2px 4px #000000;
     }
-    .logo-upload {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 100;
-    }
-    .logo-container {
-        text-align: center;
-        margin-bottom: 1rem;
-    }
-    .student-section {
-        font-size: 1.1em;
-    }
-    .question-box {
-        background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        border-radius: 8px;
+    .student-row, .question-box {
+        border-radius: 12px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         padding: 15px;
         margin-bottom: 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
     }
     .question-completed {
         text-decoration: line-through;
         color: red;
     }
-    .student-row {
-        background-color: #ffffff;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 5px;
-        border: 1px solid #dee2e6;
-    }
-    .student-controls {
+    .stats-container {
         display: flex;
-        gap: 10px;
+        justify-content: space-around;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .stat-box {
+        padding: 15px;
+        border-radius: 12px;
+        background-color: #F4F6F7;
+        text-align: center;
+        width: 100%;
+        font-size: 1.2em;
+    }
+    .background {
+        background: url('https://www.transparenttextures.com/patterns/diamond-upholstery.png');
     }
     .credits {
         text-align: center;
         padding: 20px;
-        background-color: #f0f2f6;
+        background-color: #e8f5e9;
         border-radius: 10px;
         margin-top: 30px;
+        font-family: 'Arial', sans-serif;
     }
-    .background {
-        background: url('https://www.transparenttextures.com/patterns/clean-gray-paper.png');
+    .credits h3 {
+        font-size: 1.8em;
+        font-weight: bold;
+    }
+    .credits p {
+        font-size: 1.1em;
+        margin: 5px 0;
     }
     </style>
 """, unsafe_allow_html=True)
 
+# Clase principal
 class ControlParticipacion:
     def __init__(self):
         if 'estudiantes' not in st.session_state:
@@ -86,210 +90,79 @@ class ControlParticipacion:
         if 'participaciones_esperadas' not in st.session_state:
             st.session_state.participaciones_esperadas = 10
         if 'preguntas' not in st.session_state:
-            st.session_state.preguntas = []
+            st.session_state.preguntas = [f"Pregunta {i+1}" for i in range(5)]
         if 'preguntas_completadas' not in st.session_state:
             st.session_state.preguntas_completadas = set()
         if 'logo' not in st.session_state:
             st.session_state.logo = None
 
     def cargar_logo(self):
-        with st.container():
-            st.markdown('<div class="logo-upload">', unsafe_allow_html=True)
-            logo_file = st.file_uploader("LOGO", type=['png', 'jpg', 'jpeg'], label_visibility="collapsed")
-            st.markdown('</div>', unsafe_allow_html=True)
-            if logo_file is not None:
-                st.session_state.logo = base64.b64encode(logo_file.read()).decode()
+        logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'], label_visibility="collapsed")
+        if logo_file is not None:
+            st.session_state.logo = base64.b64encode(logo_file.read()).decode()
 
     def mostrar_header(self):
         if st.session_state.logo:
             st.markdown(f"""
                 <div class="logo-container">
-                    <img src="data:image/png;base64,{st.session_state.logo}" width="345"/>
+                    <img src="data:image/png;base64,{st.session_state.logo}"/>
                 </div>
             """, unsafe_allow_html=True)
-        
         st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
 
-    def cargar_archivo_txt(self, tipo):
-        archivo = st.file_uploader(f"CARGAR ARCHIVO {tipo.upper()}", type=['txt'])
-        if archivo is not None:
-            try:
-                contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
-                contenido = [linea.strip() for linea in contenido if linea.strip()]
-                
-                if tipo == "estudiantes":
-                    for estudiante in contenido:
-                        if estudiante not in st.session_state.estudiantes['Nombre'].values:
-                            nuevo_df = pd.DataFrame({
-                                'Nombre': [estudiante],
-                                'Participaciones': [0],
-                                'Puntaje': [0]
-                            })
-                            st.session_state.estudiantes = pd.concat(
-                                [st.session_state.estudiantes, nuevo_df],
-                                ignore_index=True
-                            )
-                    st.success("Estudiantes cargados exitosamente")
-                
-                elif tipo == "preguntas":
-                    st.session_state.preguntas.extend(contenido)
-                    st.success("Preguntas cargadas exitosamente")
-            except Exception as e:
-                st.error(f"Error al cargar el archivo: {str(e)}")
-
-    def eliminar_estudiante(self, nombre):
-        st.session_state.estudiantes = st.session_state.estudiantes[
-            st.session_state.estudiantes['Nombre'] != nombre
-        ].reset_index(drop=True)
-
     def agregar_estudiante(self):
-        col1, col2, col3 = st.columns([2, 1, 1])
-        with col1:
-            nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
-        with col2:
-            if st.button("AGREGAR ESTUDIANTE"):
-                if nuevo_estudiante:
-                    if nuevo_estudiante not in st.session_state.estudiantes['Nombre'].values:
-                        nuevo_df = pd.DataFrame({
-                            'Nombre': [nuevo_estudiante],
-                            'Participaciones': [0],
-                            'Puntaje': [0]
-                        })
-                        st.session_state.estudiantes = pd.concat(
-                            [st.session_state.estudiantes, nuevo_df],
-                            ignore_index=True
-                        )
-                        st.success(f"Estudiante {nuevo_estudiante} agregado con éxito")
-                    else:
-                        st.error("Este estudiante ya existe")
-        with col3:
-            self.cargar_archivo_txt("estudiantes")
+        nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
+        if st.button("AGREGAR ESTUDIANTE"):
+            if nuevo_estudiante:
+                if nuevo_estudiante not in st.session_state.estudiantes['Nombre'].values:
+                    nuevo_df = pd.DataFrame({
+                        'Nombre': [nuevo_estudiante],
+                        'Participaciones': [0],
+                        'Puntaje': [0]
+                    })
+                    st.session_state.estudiantes = pd.concat(
+                        [st.session_state.estudiantes, nuevo_df],
+                        ignore_index=True
+                    )
+                    st.success(f"Estudiante {nuevo_estudiante} agregado con éxito")
+                else:
+                    st.error("Este estudiante ya existe")
 
     def mostrar_estudiantes(self):
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.markdown("### GESTIÓN DE ESTUDIANTES")
-        with col2:
-            st.session_state.participaciones_esperadas = st.number_input(
-                "PARTICIPACIONES ESPERADAS",
-                min_value=1,
+        if not st.session_state.estudiantes.empty:
+            col1, col2, col3 = st.columns([3, 1, 1])
+            col1.markdown("### GESTIÓN DE ESTUDIANTES")
+            st.session_state.participaciones_esperadas = col2.number_input(
+                "PARTICIPACIONES ESPERADAS", min_value=1,
                 value=st.session_state.participaciones_esperadas
             )
+            if col3.button("LIMPIAR LISTA DE ESTUDIANTES"):
+                st.session_state.estudiantes = pd.DataFrame(
+                    columns=['Nombre', 'Participaciones', 'Puntaje']
+                )
+                st.success("Lista de estudiantes limpiada exitosamente")
 
-        for _, estudiante in st.session_state.estudiantes.iterrows():
-            with st.container():
-                st.markdown(f'<div class="student-row">', unsafe_allow_html=True)
+            for _, estudiante in st.session_state.estudiantes.iterrows():
                 cols = st.columns([3, 2, 2, 1, 1, 1])
-                with cols[0]:
-                    st.write(f"**{estudiante['Nombre']}**")
-                with cols[1]:
-                    st.write(f"Participaciones: {estudiante['Participaciones']}/{st.session_state.participaciones_esperadas}")
-                with cols[2]:
-                    st.write(f"Nota: {estudiante['Puntaje']:.1f}")
-                with cols[3]:
-                    if st.button("+1", key=f"plus_{estudiante['Nombre']}"):
-                        idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
-                        st.session_state.estudiantes.loc[idx, 'Participaciones'] += 1
-                        st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(
-                            20,
-                            (st.session_state.estudiantes.loc[idx, 'Participaciones'] / 
-                             st.session_state.participaciones_esperadas) * 20
+                cols[0].write(f"**{estudiante['Nombre']}**")
+                cols[1].write(f"Participaciones: {estudiante['Participaciones']}/{st.session_state.participaciones_esperadas}")
+                cols[2].write(f"Nota: {estudiante['Puntaje']:.1f}")
+                if cols[3].button("+1", key=f"plus_{estudiante['Nombre']}"):
+                    idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
+                    st.session_state.estudiantes.at[idx, 'Participaciones'] += 1
+                    st.session_state.estudiantes.at[idx, 'Puntaje'] = min(
+                        20, (st.session_state.estudiantes.at[idx, 'Participaciones'] / 
+                        st.session_state.participaciones_esperadas) * 20
+                    )
+
+                if cols[4].button("-1", key=f"minus_{estudiante['Nombre']}"):
+                    idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
+                    if st.session_state.estudiantes.at[idx, 'Participaciones'] > 0:
+                        st.session_state.estudiantes.at[idx, 'Participaciones'] -= 1
+                        st.session_state.estudiantes.at[idx, 'Puntaje'] = min(
+                            20, (st.session_state.estudiantes.at[idx, 'Participaciones'] / 
+                            st.session_state.participaciones_esperadas) * 20
                         )
-                with cols[4]:
-                    if st.button("-1", key=f"minus_{estudiante['Nombre']}"):
-                        idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == estudiante['Nombre']].index[0]
-                        if st.session_state.estudiantes.loc[idx, 'Participaciones'] > 0:
-                            st.session_state.estudiantes.loc[idx, 'Participaciones'] -= 1
-                            st.session_state.estudiantes.loc[idx, 'Puntaje'] = min(
-                                20,
-                                (st.session_state.estudiantes.loc[idx, 'Participaciones'] / 
-                                 st.session_state.participaciones_esperadas) * 20
-                            )
-                with cols[5]:
-                    if st.button("🗑️", key=f"delete_{estudiante['Nombre']}"):
-                        self.eliminar_estudiante(estudiante['Nombre'])
-                        st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-
-        if st.button("LIMPIAR LISTA DE ESTUDIANTES"):
-            st.session_state.estudiantes = pd.DataFrame(
-                columns=['Nombre', 'Participaciones', 'Puntaje']
-            )
-            st.success("Lista de estudiantes limpiada exitosamente")
-
-    def mostrar_graficos(self):
-        if not st.session_state.estudiantes.empty:
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                fig_bar = px.bar(
-                    st.session_state.estudiantes,
-                    x='Nombre',
-                    y='Participaciones',
-                    title='PARTICIPACIONES POR ESTUDIANTE',
-                    color='Participaciones',
-                    color_continuous_scale='Viridis'
-                )
-                fig_bar.update_layout(
-                    title_x=0.5,
-                    title_font_size=20
-                )
-                st.plotly_chart(fig_bar, use_container_width=True)
-            
-            with col2:
-                datos_torta = st.session_state.estudiantes.copy()
-                total_participaciones = datos_torta['Participaciones'].sum()
-                if total_participaciones > 0:
-                    datos_torta['Porcentaje'] = (datos_torta['Participaciones'] / total_participaciones * 100)
-                    
-                    fig_pie = px.pie(
-                        datos_torta,
-                        values='Porcentaje',
-                        names='Nombre',
-                        title='DISTRIBUCIÓN DE PARTICIPACIONES (%)',
-                        color_discrete_sequence=px.colors.qualitative.Set3
-                    )
-                    fig_pie.update_layout(
-                        title_x=0.5,
-                        title_font_size=20
-                    )
-                    st.plotly_chart(fig_pie, use_container_width=True)
-
-    def gestionar_preguntas(self):
-        st.markdown("### PREGUNTAS PLANIFICADAS")
-        col1, col2, col3 = st.columns([2, 1, 1])
-        
-        with col1:
-            nueva_pregunta = st.text_input("ESCRIBA UNA NUEVA PREGUNTA")
-        with col2:
-            if st.button("AGREGAR PREGUNTA"):
-                if nueva_pregunta:
-                    st.session_state.preguntas.append(nueva_pregunta)
-        with col3:
-            self.cargar_archivo_txt("preguntas")
-
-        for i, pregunta in enumerate(st.session_state.preguntas):
-            with st.container():
-                st.markdown(
-                    f'<div class="question-box{" question-completed" if i in st.session_state.preguntas_completadas else ""}">',
-                    unsafe_allow_html=True
-                )
-                cols = st.columns([4, 1])
-                with cols[0]:
-                    st.write(f"{i+1}. {pregunta}")
-                with cols[1]:
-                    if i in st.session_state.preguntas_completadas:
-                        if st.button("Desmarcar", key=f"uncheck_{i}"):
-                            st.session_state.preguntas_completadas.remove(i)
-                    else:
-                        if st.button("Completar", key=f"check_{i}"):
-                            st.session_state.preguntas_completadas.add(i)
-                st.markdown('</div>', unsafe_allow_html=True)
-
-        if st.button("LIMPIAR PREGUNTAS"):
-            st.session_state.preguntas = []
-            st.session_state.preguntas_completadas = set()
-            st.success("Lista de preguntas limpiada exitosamente")
 
     def mostrar_creditos(self):
         st.markdown("""
@@ -304,11 +177,7 @@ class ControlParticipacion:
         self.cargar_logo()
         self.mostrar_header()
         self.agregar_estudiante()
-        st.markdown("---")
         self.mostrar_estudiantes()
-        self.mostrar_graficos()
-        st.markdown("---")
-        self.gestionar_preguntas()
         self.mostrar_creditos()
 
 # Iniciar la aplicación
