@@ -146,7 +146,7 @@ class ControlParticipacion:
         st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
 
     def cargar_archivo_txt(self, tipo):
-        archivo = st.file_uploader(f"CARGAR ARCHIVO {tipo.upper()}", type=['txt'])
+        archivo = st.file_uploader("SUBE DATA AMIGO", type=['txt'])
         if archivo is not None:
             try:
                 contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
