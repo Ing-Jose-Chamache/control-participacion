@@ -56,7 +56,7 @@ st.markdown("""
         display: flex;
         align-items: center;
         padding: 15px;
-        margin: 15px 0;
+        margin: 20px 0;
         background-color: #ffffff;
         border-radius: 10px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -65,12 +65,23 @@ st.markdown("""
     .student-row::after {
         content: "";
         position: absolute;
-        bottom: -15px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 80%;
-        height: 2px;
-        background: linear-gradient(to right, transparent, #0066cc, transparent);
+        bottom: -10px;
+        left: 10%;
+        right: 10%;
+        height: 1px;
+        background: repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 5px,
+            #0066cc 5px,
+            #0066cc 10px
+        );
+    }
+    .student-separator {
+        text-align: center;
+        color: #0066cc;
+        margin: -5px 0 15px 0;
+        font-size: 12px;
     }
     div[data-testid="stFileUploader"] {
         width: 50px;
@@ -155,10 +166,11 @@ if students_file:
         st.success(f"Se cargaron {len(contenido)} estudiantes")
 
 # Configuración
-col_nombre, col_num, _ = st.columns([2, 1, 1])
-with col_nombre:
+# Configuración
+cols = st.columns([2, 1, 1])
+with cols[0]:
     nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
-with col_num:
+with cols[1]:
     num_preguntas = st.number_input("NÚMERO DE PREGUNTAS", min_value=1, value=5)
     st.session_state.num_preguntas = num_preguntas
 
