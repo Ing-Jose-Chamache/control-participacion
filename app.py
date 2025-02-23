@@ -8,236 +8,165 @@ from io import StringIO
 # Configuración de la página
 st.set_page_config(page_title="CONTROL DE PARTICIPACIÓN", layout="wide")
 
-# Estilo personalizado modificado
+# Estilo personalizado
 st.markdown("""
     <style>
     .main {
-        padding: 2rem;
+        padding: 1rem;
     }
-    .title {
-        text-transform: uppercase;
-        text-align: center;
-        font-weight: bold;
-        font-size: 2.5em;
+    .stButton>button {
+        background-color: transparent;
+        border: none;
     }
-    .logo-container {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        max-width: 200px;
-    }
-    .logo-container img {
-        width: 100%;
-        height: auto;
-    }
-    .student-row {
-        background-color: #ffffff;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 5px;
-        border: 1px solid #dee2e6;
-        display: flex;
-        align-items: center;
-    }
-    .participation-circle {
-        width: 20px;
-        height: 20px;
+    .circle-btn {
+        width: 30px;
+        height: 30px;
         border-radius: 50%;
-        display: inline-block;
         margin: 0 5px;
         cursor: pointer;
+        display: inline-block;
     }
-    .circle-black {
+    .black-circle {
         background-color: black;
+        color: white;
     }
-    .circle-yellow {
+    .yellow-circle {
         background-color: yellow;
+        color: black;
     }
-    .question-slide {
+    .title {
+        font-size: 2em;
+        font-weight: bold;
         text-align: center;
+        margin: 1em 0;
+    }
+    .question-container {
+        background-color: #f0f2f6;
         padding: 20px;
+        border-radius: 10px;
         margin: 20px 0;
-        background-color: #f8f9fa;
-        border-radius: 10px;
-        position: relative;
-    }
-    .navigation-buttons {
-        display: flex;
-        justify-content: space-between;
-        position: absolute;
-        width: 100%;
-        top: 50%;
-        transform: translateY(-50%);
-    }
-    .file-upload-btn {
-        width: 30px !important;
-        height: 30px !important;
-        padding: 0 !important;
-        border-radius: 50% !important;
-    }
-    .config-section {
-        background-color: #f0f2f6;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-    }
-    .credits {
         text-align: center;
-        padding: 20px;
-        background-color: #f0f2f6;
-        border-radius: 10px;
-        margin-top: 30px;
+    }
+    .student-row {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        margin: 5px 0;
+        background-color: #ffffff;
+        border-radius: 5px;
+    }
+    div[data-testid="stFileUploader"] {
+        width: 50px;
+        height: 50px;
+        overflow: hidden;
+    }
+    div[data-testid="stFileUploader"] div {
+        padding: 0 !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-class ControlParticipacion:
-    def __init__(self):
-        if 'estudiantes' not in st.session_state:
-            st.session_state.estudiantes = pd.DataFrame(
-                columns=['Nombre', 'Participaciones', 'Respuestas_Correctas']
-            )
-        if 'preguntas' not in st.session_state:
-            st.session_state.preguntas = []
-        if 'pregunta_actual' not in st.session_state:
-            st.session_state.pregunta_actual = 0
-        if 'logo' not in st.session_state:
-            st.session_state.logo = None
-        if 'num_preguntas' not in st.session_state:
-            st.session_state.num_preguntas = 5  # Valor por defecto
+if 'estudiantes' not in st.session_state:
+    st.session_state.estudiantes = pd.DataFrame(columns=['Nombre', 'Respuestas'])
+if 'preguntas' not in st.session_state:
+    st.session_state.preguntas = []
+if 'pregunta_actual' not in st.session_state:
+    st.session_state.pregunta_actual = 0
+if 'num_preguntas' not in st.session_state:
+    st.session_state.num_preguntas = 5
 
-    def cargar_logo(self):
-        st.markdown('<div style="width:30px;position:fixed;top:10px;left:10px;z-index:1000">', unsafe_allow_html=True)
-        logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'])
-        st.markdown('</div>', unsafe_allow_html=True)
-        if logo_file is not None:
-            st.session_state.logo = base64.b64encode(logo_file.read()).decode()
+# Logo y título
+col1, col2 = st.columns([1, 4])
+with col1:
+    logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'])
+    if logo_file:
+        st.image(logo_file, width=200)
+with col2:
+    st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
 
-    def mostrar_header(self):
-        if st.session_state.logo:
-            st.markdown(f"""
-                <div class="logo-container">
-                    <img src="data:image/png;base64,{st.session_state.logo}"/>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
+# Configuración
+col_nombre, col_num, _ = st.columns([2, 1, 1])
+with col_nombre:
+    nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
+with col_num:
+    num_preguntas = st.number_input("NÚMERO DE PREGUNTAS", min_value=1, value=5)
+    st.session_state.num_preguntas = num_preguntas
 
-    def configuracion_inicial(self):
-        with st.container():
-            st.markdown('<div class="config-section">', unsafe_allow_html=True)
-            cols = st.columns([2, 1])
-            with cols[0]:
-                nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE", key="nuevo_estudiante")
-                if st.button("AGREGAR ESTUDIANTE") and nuevo_estudiante:
-                    if nuevo_estudiante not in st.session_state.estudiantes['Nombre'].values:
-                        nuevo_df = pd.DataFrame({
-                            'Nombre': [nuevo_estudiante],
-                            'Participaciones': [0],
-                            'Respuestas_Correctas': [0]
-                        })
-                        st.session_state.estudiantes = pd.concat(
-                            [st.session_state.estudiantes, nuevo_df],
-                            ignore_index=True
-                        )
-            with cols[1]:
-                st.session_state.num_preguntas = st.number_input(
-                    "NÚMERO DE PREGUNTAS",
-                    min_value=1,
-                    value=st.session_state.num_preguntas
-                )
-            st.markdown('</div>', unsafe_allow_html=True)
+# Botón para agregar estudiante
+if st.button("AGREGAR ESTUDIANTE") and nuevo_estudiante:
+    if nuevo_estudiante not in st.session_state.estudiantes['Nombre'].values:
+        nuevo_df = pd.DataFrame({
+            'Nombre': [nuevo_estudiante],
+            'Respuestas': ['0' * st.session_state.num_preguntas]
+        })
+        st.session_state.estudiantes = pd.concat([st.session_state.estudiantes, nuevo_df], ignore_index=True)
 
-    def mostrar_pregunta_actual(self):
-        if st.session_state.preguntas:
-            st.markdown('<div class="question-slide">', unsafe_allow_html=True)
-            cols = st.columns([1, 3, 1])
-            with cols[0]:
-                if st.button("←") and st.session_state.pregunta_actual > 0:
-                    st.session_state.pregunta_actual -= 1
-                    st.rerun()
-            with cols[1]:
-                st.markdown(f"### Pregunta {st.session_state.pregunta_actual + 1}")
-                st.write(st.session_state.preguntas[st.session_state.pregunta_actual])
-            with cols[2]:
-                if st.button("→") and st.session_state.pregunta_actual < len(st.session_state.preguntas) - 1:
-                    st.session_state.pregunta_actual += 1
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+# Mostrar preguntas
+if st.session_state.preguntas:
+    st.markdown("<div class='question-container'>", unsafe_allow_html=True)
+    col_prev, col_quest, col_next = st.columns([1, 3, 1])
+    with col_prev:
+        if st.button("←") and st.session_state.pregunta_actual > 0:
+            st.session_state.pregunta_actual -= 1
+    with col_quest:
+        st.write(f"### Pregunta {st.session_state.pregunta_actual + 1}")
+        st.write(st.session_state.preguntas[st.session_state.pregunta_actual])
+    with col_next:
+        if st.button("→") and st.session_state.pregunta_actual < len(st.session_state.preguntas) - 1:
+            st.session_state.pregunta_actual += 1
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    def mostrar_estudiantes(self):
+# Mostrar estudiantes y círculos
+for idx, estudiante in st.session_state.estudiantes.iterrows():
+    col1, col2, col3 = st.columns([2, 6, 1])
+    with col1:
+        st.write(estudiante['Nombre'])
+    with col2:
+        respuestas = list(estudiante['Respuestas'])
+        for i in range(st.session_state.num_preguntas):
+            if st.button("⬤", key=f"{estudiante['Nombre']}_{i}", 
+                        help="Click para marcar respuesta",
+                        type="secondary" if respuestas[i] == '0' else "primary"):
+                respuestas_list = list(st.session_state.estudiantes.loc[idx, 'Respuestas'])
+                respuestas_list[i] = '1' if respuestas_list[i] == '0' else '0'
+                st.session_state.estudiantes.loc[idx, 'Respuestas'] = ''.join(respuestas_list)
+                st.rerun()
+    with col3:
+        if st.button("🗑️", key=f"delete_{estudiante['Nombre']}"):
+            st.session_state.estudiantes = st.session_state.estudiantes.drop(idx).reset_index(drop=True)
+            st.rerun()
+
+# Cargar preguntas
+txt_file = st.file_uploader("", type=['txt'])
+if txt_file:
+    contenido = StringIO(txt_file.getvalue().decode("utf-8")).read().splitlines()
+    st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
+    st.success(f"Se cargaron {len(st.session_state.preguntas)} preguntas")
+
+# Estadísticas
+if not st.session_state.estudiantes.empty:
+    st.markdown("### Estadísticas de Participación")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Calcular respuestas correctas por estudiante
+        estudiantes_stats = []
         for _, estudiante in st.session_state.estudiantes.iterrows():
-            with st.container():
-                cols = st.columns([3, 4, 1])
-                with cols[0]:
-                    st.write(estudiante['Nombre'])
-                with cols[1]:
-                    # Usar el número de preguntas definido por el profesor
-                    for i in range(st.session_state.num_preguntas):
-                        color = "yellow" if i < estudiante['Respuestas_Correctas'] else "black"
-                        if st.button("⬤", key=f"circle_{estudiante['Nombre']}_{i}", 
-                                   help="Click para marcar respuesta correcta"):
-                            idx = st.session_state.estudiantes[
-                                st.session_state.estudiantes['Nombre'] == estudiante['Nombre']
-                            ].index[0]
-                            if color == "black":
-                                st.session_state.estudiantes.loc[idx, 'Respuestas_Correctas'] += 1
-                                st.session_state.estudiantes.loc[idx, 'Participaciones'] += 1
-                            st.rerun()
-                with cols[2]:
-                    if st.button("🗑️", key=f"delete_{estudiante['Nombre']}"):
-                        self.eliminar_estudiante(estudiante['Nombre'])
-                        st.rerun()
-
-    def eliminar_estudiante(self, nombre):
-        st.session_state.estudiantes = st.session_state.estudiantes[
-            st.session_state.estudiantes['Nombre'] != nombre
-        ].reset_index(drop=True)
-
-    def cargar_preguntas(self):
-        st.markdown('<div style="width:30px;position:fixed;bottom:10px;right:10px">', unsafe_allow_html=True)
-        archivo = st.file_uploader("", type=['txt'])
-        st.markdown('</div>', unsafe_allow_html=True)
-        if archivo is not None:
-            contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
-            st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
-            st.success(f"Se cargaron {len(st.session_state.preguntas)} preguntas")
-
-    def mostrar_estadisticas(self):
-        if not st.session_state.estudiantes.empty:
-            col1, col2 = st.columns(2)
-            with col1:
-                fig_bar = px.bar(
-                    st.session_state.estudiantes,
-                    x='Nombre',
-                    y=['Participaciones', 'Respuestas_Correctas'],
-                    title='PARTICIPACIONES Y RESPUESTAS CORRECTAS',
-                    barmode='group'
-                )
-                st.plotly_chart(fig_bar, use_container_width=True)
-            
-            with col2:
-                # Calcular el porcentaje de respuestas correctas
-                porcentaje_correctas = (st.session_state.estudiantes['Respuestas_Correctas'] / 
-                                      st.session_state.num_preguntas * 100).round(2)
-                
-                fig_pie = px.pie(
-                    st.session_state.estudiantes,
-                    values=porcentaje_correctas,
-                    names='Nombre',
-                    title='PORCENTAJE DE RESPUESTAS CORRECTAS'
-                )
-                st.plotly_chart(fig_pie, use_container_width=True)
-
-    def run(self):
-        self.cargar_logo()
-        self.mostrar_header()
-        self.configuracion_inicial()
-        self.mostrar_pregunta_actual()
-        self.mostrar_estudiantes()
-        self.mostrar_estadisticas()
-        self.cargar_preguntas()
-
-if __name__ == "__main__":
-    app = ControlParticipacion()
-    app.run()
+            correctas = sum(1 for r in estudiante['Respuestas'] if r == '1')
+            estudiantes_stats.append({
+                'Nombre': estudiante['Nombre'],
+                'Respuestas_Correctas': correctas
+            })
+        
+        df_stats = pd.DataFrame(estudiantes_stats)
+        fig = px.bar(df_stats, x='Nombre', y='Respuestas_Correctas',
+                    title='Respuestas Correctas por Estudiante')
+        st.plotly_chart(fig)
+    
+    with col2:
+        # Gráfico de torta para porcentaje de participación
+        total_preguntas = st.session_state.num_preguntas
+        df_stats['Porcentaje'] = (df_stats['Respuestas_Correctas'] / total_preguntas * 100).round(2)
+        fig = px.pie(df_stats, values='Porcentaje', names='Nombre',
+                    title='Porcentaje de Participación')
+        st.plotly_chart(fig)
