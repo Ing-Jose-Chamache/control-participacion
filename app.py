@@ -165,6 +165,7 @@ st.markdown("""
 
 class ControlParticipacion:
     def __init__(self):
+        # Inicializar las variables de estado si no existen
         if 'estudiantes' not in st.session_state:
             st.session_state.estudiantes = pd.DataFrame(
                 columns=['Nombre', 'Participaciones', 'Puntaje']
@@ -179,6 +180,8 @@ class ControlParticipacion:
             st.session_state.iconos_estado = {}
         if 'logo' not in st.session_state:
             st.session_state.logo = None
+        if 'cargar_preguntas' not in st.session_state:
+            st.session_state.cargar_preguntas = False
         
         # Aplicar estilos globales
         st.markdown("""
@@ -268,21 +271,27 @@ class ControlParticipacion:
             return False
 
     def cargar_preguntas_txt(self):
-        archivo = st.file_uploader("📄", type=['txt'], key="preguntas_uploader", 
-                                 help="Cargar archivo de preguntas", 
-                                 label_visibility="collapsed",
-                                 on_change=None)  # Evitar recargas automáticas
-        
-        if archivo is not None:
-            try:
-                contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
-                preguntas = [linea.strip() for linea in contenido if linea.strip()]
-                if preguntas:
-                    st.session_state.preguntas = preguntas
-                    st.session_state.pregunta_actual = 0
-                    st.experimental_rerun()
-            except:
-                pass  # Silenciar completamente cualquier error
+        def procesar_archivo():
+            if st.session_state.archivo_preguntas is not None:
+                try:
+                    contenido = StringIO(st.session_state.archivo_preguntas.getvalue().decode("utf-8")).read().splitlines()
+                    preguntas = [linea.strip() for linea in contenido if linea.strip()]
+                    if preguntas:
+                        st.session_state.preguntas = preguntas
+                        st.session_state.pregunta_actual = 0
+                        st.session_state.cargar_preguntas = True
+                        del st.session_state.archivo_preguntas
+                except:
+                    pass
+
+        # Widget de carga de archivo
+        st.file_uploader(
+            "📄",
+            type=['txt'],
+            key="archivo_preguntas",
+            on_change=procesar_archivo,
+            label_visibility="collapsed"
+        )
 
     def eliminar_pregunta(self, index):
         if 0 <= index < len(st.session_state.preguntas):
