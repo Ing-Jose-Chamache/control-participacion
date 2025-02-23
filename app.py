@@ -1,18 +1,36 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import numpy as np
 from datetime import datetime
 import base64
 from io import StringIO
 
 # Configuración de la página
-st.set_page_config(page_title="CONTROL DE PARTICIPACIÓN", layout="wide")
+st.set_page_config(page_title="Control de Participación", layout="wide")
 
 # Estilo personalizado
 st.markdown("""
     <style>
+    body {
+        background-color: #f5f5f5 !important;
+    }
     .main {
         padding: 1rem;
+        background-color: #f5f5f5;
+    }
+    .student-separator {
+        border: none;
+        height: 2px;
+        background: linear-gradient(to right, transparent, #0066cc, transparent);
+        margin: 15px 0;
+    }
+    .student-container {
+        background-color: rgba(255, 255, 255, 0.7);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     .stButton>button {
         background-color: transparent;
@@ -34,18 +52,18 @@ st.markdown("""
         background-color: yellow;
         color: black;
     }
-    .title {
-        font-size: 2em;
-        font-weight: bold;
-        text-align: center;
-        margin: 1em 0;
-    }
     .question-container {
-        background-color: #f0f2f6;
+        background-color: #FFFACD;
         padding: 20px;
         border-radius: 10px;
         margin: 20px 0;
         text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .question-text {
+        color: #0066cc;
+        font-size: 1.2em;
+        font-weight: 500;
     }
     .student-row {
         display: flex;
@@ -63,6 +81,16 @@ st.markdown("""
     div[data-testid="stFileUploader"] div {
         padding: 0 !important;
     }
+    .stats-container {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 10px 0;
+    }
+    .stats-highlight {
+        color: #0066cc;
+        font-weight: bold;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -75,14 +103,12 @@ if 'pregunta_actual' not in st.session_state:
 if 'num_preguntas' not in st.session_state:
     st.session_state.num_preguntas = 5
 
-# Logo y título
+# Logo
 col1, col2 = st.columns([1, 4])
 with col1:
     logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'])
     if logo_file:
         st.image(logo_file, width=200)
-with col2:
-    st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
 
 # Configuración
 col_nombre, col_num, _ = st.columns([2, 1, 1])
@@ -101,7 +127,7 @@ if st.button("AGREGAR ESTUDIANTE") and nuevo_estudiante:
         })
         st.session_state.estudiantes = pd.concat([st.session_state.estudiantes, nuevo_df], ignore_index=True)
 
-# Mostrar preguntas
+# Mostrar preguntas en cuadro amarillo suave
 if st.session_state.preguntas:
     st.markdown("<div class='question-container'>", unsafe_allow_html=True)
     col_prev, col_quest, col_next = st.columns([1, 3, 1])
@@ -109,8 +135,8 @@ if st.session_state.preguntas:
         if st.button("←") and st.session_state.pregunta_actual > 0:
             st.session_state.pregunta_actual -= 1
     with col_quest:
-        st.write(f"### Pregunta {st.session_state.pregunta_actual + 1}")
-        st.write(st.session_state.preguntas[st.session_state.pregunta_actual])
+        st.markdown(f"<div class='question-text'>Pregunta {st.session_state.pregunta_actual + 1}:</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='question-text'>{st.session_state.preguntas[st.session_state.pregunta_actual]}</div>", unsafe_allow_html=True)
     with col_next:
         if st.button("→") and st.session_state.pregunta_actual < len(st.session_state.preguntas) - 1:
             st.session_state.pregunta_actual += 1
@@ -146,27 +172,61 @@ if txt_file:
 # Estadísticas
 if not st.session_state.estudiantes.empty:
     st.markdown("### Estadísticas de Participación")
-    col1, col2 = st.columns(2)
+    
+    # Calcular estadísticas
+    estudiantes_stats = []
+    for _, estudiante in st.session_state.estudiantes.iterrows():
+        correctas = sum(1 for r in estudiante['Respuestas'] if r == '1')
+        porcentaje = (correctas / st.session_state.num_preguntas) * 100
+        estudiantes_stats.append({
+            'Nombre': estudiante['Nombre'],
+            'Respuestas_Correctas': correctas,
+            'Porcentaje': porcentaje
+        })
+    
+    df_stats = pd.DataFrame(estudiantes_stats)
+    
+    # Mostrar estadísticas en 3 columnas
+    col1, col2, col3 = st.columns(3)
     
     with col1:
-        # Calcular respuestas correctas por estudiante
-        estudiantes_stats = []
-        for _, estudiante in st.session_state.estudiantes.iterrows():
-            correctas = sum(1 for r in estudiante['Respuestas'] if r == '1')
-            estudiantes_stats.append({
-                'Nombre': estudiante['Nombre'],
-                'Respuestas_Correctas': correctas
-            })
-        
-        df_stats = pd.DataFrame(estudiantes_stats)
+        # Gráfico de barras de respuestas correctas
         fig = px.bar(df_stats, x='Nombre', y='Respuestas_Correctas',
-                    title='Respuestas Correctas por Estudiante')
+                    title='Respuestas Correctas por Estudiante',
+                    color='Respuestas_Correctas',
+                    color_continuous_scale='Viridis')
         st.plotly_chart(fig)
     
     with col2:
         # Gráfico de torta para porcentaje de participación
-        total_preguntas = st.session_state.num_preguntas
-        df_stats['Porcentaje'] = (df_stats['Respuestas_Correctas'] / total_preguntas * 100).round(2)
         fig = px.pie(df_stats, values='Porcentaje', names='Nombre',
-                    title='Porcentaje de Participación')
+                    title='Distribución de Participación (%)')
         st.plotly_chart(fig)
+    
+    with col3:
+        # Nueva estadística: Análisis de Rendimiento
+        st.markdown("<div class='stats-container'>", unsafe_allow_html=True)
+        st.markdown("#### Análisis de Rendimiento")
+        
+        # Calcular rendimiento promedio de la clase
+        promedio_clase = df_stats['Porcentaje'].mean()
+        mejor_estudiante = df_stats.loc[df_stats['Porcentaje'].idxmax()]
+        estudiantes_riesgo = df_stats[df_stats['Porcentaje'] < 60]
+        
+        st.write(f"Promedio de la clase: **{promedio_clase:.1f}%**")
+        st.write(f"Mejor rendimiento: **{mejor_estudiante['Nombre']}** ({mejor_estudiante['Porcentaje']:.1f}%)")
+        st.write(f"Estudiantes en riesgo: **{len(estudiantes_riesgo)}**")
+        
+        # Mostrar niveles de rendimiento
+        st.markdown("##### Niveles de Rendimiento:")
+        niveles = {
+            'Excelente (90-100%)': len(df_stats[df_stats['Porcentaje'] >= 90]),
+            'Bueno (70-89%)': len(df_stats[(df_stats['Porcentaje'] >= 70) & (df_stats['Porcentaje'] < 90)]),
+            'Regular (60-69%)': len(df_stats[(df_stats['Porcentaje'] >= 60) & (df_stats['Porcentaje'] < 70)]),
+            'En riesgo (<60%)': len(df_stats[df_stats['Porcentaje'] < 60])
+        }
+        
+        for nivel, cantidad in niveles.items():
+            st.write(f"{nivel}: **{cantidad}** estudiantes")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
