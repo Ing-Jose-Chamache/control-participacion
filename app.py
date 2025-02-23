@@ -110,7 +110,7 @@ class ControlParticipacion:
                             [st.session_state.estudiantes, nuevo_df],
                             ignore_index=True
                         )
-                st.success("Estudiantes cargados exitosamente")
+                st.success("Excelente somos de otro nivel...")
             except Exception as e:
                 st.error(f"Carga de nuevo el archivo por favor somos SENATI: {str(e)}")
 
