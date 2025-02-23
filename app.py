@@ -4,6 +4,7 @@ import plotly.express as px
 from datetime import datetime
 import base64
 from io import StringIO
+import time
 
 # Configuración de la página
 st.set_page_config(page_title="CONTROL DE PARTICIPACIÓN", layout="wide")
@@ -223,19 +224,20 @@ class ControlParticipacion:
 
     def eliminar_estudiante(self, nombre):
         try:
-            # Eliminar estudiante del DataFrame
+            # Primero verificar si el estudiante existe
+            if nombre in st.session_state.iconos_estado:
+                # Eliminar el estado de los iconos primero
+                del st.session_state.iconos_estado[nombre]
+                
+            # Luego eliminar del DataFrame
             st.session_state.estudiantes = st.session_state.estudiantes[
                 st.session_state.estudiantes['Nombre'] != nombre
             ].reset_index(drop=True)
             
-            # Eliminar estado de iconos del estudiante
-            if nombre in st.session_state.iconos_estado:
-                del st.session_state.iconos_estado[nombre]
-                
-            st.success(f"Estudiante {nombre} eliminado exitosamente")
-            
+            return True
         except Exception as e:
             st.error(f"Error al eliminar estudiante: {str(e)}")
+            return False
 
     def limpiar_lista_estudiantes(self):
         try:
@@ -336,10 +338,9 @@ class ControlParticipacion:
                 
                 with cols[3]:
                     if st.button("🗑️", key=f"delete_{nombre}", help="Eliminar estudiante"):
-                        if st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == nombre].shape[0] > 0:
-                            self.eliminar_estudiante(nombre)
-                            del st.session_state.iconos_estado[nombre]
-                            st.success(f"Estudiante {nombre} eliminado")
+                        if self.eliminar_estudiante(nombre):
+                            st.success(f"Estudiante {nombre} eliminado exitosamente")
+                            time.sleep(0.1)  # Pequeña pausa para asegurar que el mensaje se muestre
                             st.rerun()
                 
                 st.markdown('</div>', unsafe_allow_html=True)
