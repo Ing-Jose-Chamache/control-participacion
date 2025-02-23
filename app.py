@@ -301,26 +301,31 @@ class ControlParticipacion:
             st.session_state.imagenes = []
             st.session_state.imagen_actual = 0
             
-        file = st.file_uploader("", 
-                               type=['jpg', 'jpeg', 'png'], 
-                               label_visibility="hidden",
-                               key="imagen_file")
+        uploaded_file = st.file_uploader("", 
+                                       type=["jpg", "jpeg", "png"],
+                                       accept_multiple_files=False,
+                                       key="imagen_upload",
+                                       label_visibility="collapsed")
                                
-        if file is not None:
+        if uploaded_file is not None:
             try:
-                # Convertir la imagen a base64
-                imagen_bytes = file.getvalue()
-                imagen_b64 = base64.b64encode(imagen_bytes).decode()
-                
-                # Agregar la imagen si no existe
-                if imagen_b64 not in [img['data'] for img in st.session_state.imagenes]:
-                    st.session_state.imagenes.append({
-                        'data': imagen_b64,
-                        'nombre': file.name
-                    })
-                    st.session_state.imagen_actual = len(st.session_state.imagenes) - 1
-            except:
-                pass  # Silenciar errores
+                # Verificar el tipo de archivo
+                file_type = uploaded_file.type
+                if file_type in ['image/jpeg', 'image/jpg', 'image/png']:
+                    # Convertir la imagen a base64
+                    imagen_bytes = uploaded_file.getvalue()
+                    imagen_b64 = base64.b64encode(imagen_bytes).decode()
+                    
+                    # Agregar la imagen si no existe
+                    if imagen_b64 not in [img['data'] for img in st.session_state.imagenes]:
+                        st.session_state.imagenes.append({
+                            'data': imagen_b64,
+                            'nombre': uploaded_file.name,
+                            'tipo': file_type
+                        })
+                        st.session_state.imagen_actual = len(st.session_state.imagenes) - 1
+            except Exception as e:
+                pass
 
     def eliminar_pregunta(self, index):
         if 0 <= index < len(st.session_state.preguntas):
