@@ -20,6 +20,25 @@ st.markdown("""
     .stTextInput>div>div>input {
         padding: 0.5rem;
     }
+    .stFileUploader {
+        width: 15%;
+        padding: 1px;
+    }
+    div[data-testid="stFileUploader"] {
+        width: 15%;
+        padding: 1px;
+    }
+    .uploadedFile {
+        width: 15%;
+    }
+    .stFileUploader > section {
+        width: 15%;
+        padding: 1px;
+    }
+    .stFileUploader > div > div {
+        width: 15%;
+        padding: 1px;
+    }
     .title {
         text-transform: uppercase;
         text-align: center;
