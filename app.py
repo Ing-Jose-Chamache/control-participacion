@@ -271,27 +271,31 @@ class ControlParticipacion:
             return False
 
     def cargar_preguntas_txt(self):
-        def procesar_archivo():
-            if st.session_state.archivo_preguntas is not None:
-                try:
-                    contenido = StringIO(st.session_state.archivo_preguntas.getvalue().decode("utf-8")).read().splitlines()
-                    preguntas = [linea.strip() for linea in contenido if linea.strip()]
-                    if preguntas:
-                        st.session_state.preguntas = preguntas
-                        st.session_state.pregunta_actual = 0
-                        st.session_state.cargar_preguntas = True
-                        del st.session_state.archivo_preguntas
-                except:
-                    pass
-
-        # Widget de carga de archivo
-        st.file_uploader(
+        uploaded_file = st.file_uploader(
             "📄",
             type=['txt'],
-            key="archivo_preguntas",
-            on_change=procesar_archivo,
+            key="uploaded_preguntas",
             label_visibility="collapsed"
         )
+        
+        if uploaded_file is not None:
+            try:
+                # Leer el contenido del archivo
+                contenido = uploaded_file.read().decode('utf-8')
+                # Procesar las preguntas
+                preguntas = [linea.strip() for linea in contenido.split('\n') if linea.strip()]
+                
+                if preguntas:
+                    # Actualizar el estado
+                    st.session_state.preguntas = preguntas
+                    st.session_state.pregunta_actual = 0
+                    
+                    # Limpiar el uploader
+                    st.session_state.uploaded_preguntas = None
+                    st.rerun()
+            except Exception as e:
+                # Silenciar errores
+                pass
 
     def eliminar_pregunta(self, index):
         if 0 <= index < len(st.session_state.preguntas):
