@@ -26,10 +26,18 @@ st.markdown("""
         font-weight: bold;
         font-size: 2.5em;
     }
+    .logo-upload {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 15%;
+        height: 15%;
+        z-index: 100;
+    }
     .logo-container {
         text-align: left;
-        margin: 20px 0 20px 20px;
-        max-width: 400px;
+        margin: 2px 0 20px 2px;
+        max-width: 200px;
     }
     .student-section {
         font-size: 1.1em;
