@@ -296,35 +296,33 @@ class ControlParticipacion:
             return False
 
     def cargar_imagenes(self):
-        """Carga silenciosa de imágenes."""
-        if 'imagenes' not in st.session_state:
-            st.session_state.imagenes = []
-            st.session_state.imagen_actual = 0
-            
-        uploaded_file = st.file_uploader("", 
-                                       type=["jpg", "jpeg", "png"],
-                                       accept_multiple_files=False,
-                                       key="imagen_upload",
-                                       label_visibility="collapsed")
-                               
-        if uploaded_file is not None:
+        """Carga de imágenes desde la interfaz."""
+        uploaded_file = st.file_uploader(
+            "",
+            type=["png", "jpg", "jpeg"],  # Solo permitir formatos de imagen
+            key="uploader_imagen",
+            label_visibility="collapsed"
+        )
+
+        if uploaded_file:
             try:
-                # Verificar el tipo de archivo
-                file_type = uploaded_file.type
-                if file_type in ['image/jpeg', 'image/jpg', 'image/png']:
-                    # Convertir la imagen a base64
-                    imagen_bytes = uploaded_file.getvalue()
-                    imagen_b64 = base64.b64encode(imagen_bytes).decode()
-                    
-                    # Agregar la imagen si no existe
-                    if imagen_b64 not in [img['data'] for img in st.session_state.imagenes]:
-                        st.session_state.imagenes.append({
-                            'data': imagen_b64,
-                            'nombre': uploaded_file.name,
-                            'tipo': file_type
-                        })
-                        st.session_state.imagen_actual = len(st.session_state.imagenes) - 1
-            except Exception as e:
+                # Leer y procesar la imagen
+                image_bytes = uploaded_file.getvalue()
+                image_base64 = base64.b64encode(image_bytes).decode()
+                
+                # Actualizar el estado
+                if 'imagenes' not in st.session_state:
+                    st.session_state.imagenes = []
+                    st.session_state.imagen_actual = 0
+                
+                # Agregar nueva imagen
+                if image_base64 not in [img.get('data') for img in st.session_state.imagenes]:
+                    st.session_state.imagenes.append({
+                        'data': image_base64,
+                        'name': uploaded_file.name
+                    })
+                    st.session_state.imagen_actual = len(st.session_state.imagenes) - 1
+            except:
                 pass
 
     def eliminar_pregunta(self, index):
