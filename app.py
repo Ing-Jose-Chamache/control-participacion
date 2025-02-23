@@ -12,25 +12,12 @@ st.set_page_config(page_title="Control de Participación", layout="wide")
 # Estilo personalizado
 st.markdown("""
     <style>
-    body {
-        background-color: #f5f5f5 !important;
-    }
     .main {
         padding: 1rem;
         background-color: #f5f5f5;
     }
-    .student-separator {
-        border: none;
-        height: 2px;
-        background: linear-gradient(to right, transparent, #0066cc, transparent);
-        margin: 15px 0;
-    }
-    .student-container {
-        background-color: rgba(255, 255, 255, 0.7);
-        border-radius: 10px;
-        padding: 15px;
-        margin: 10px 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    .stApp {
+        background-color: #f5f5f5;
     }
     .stButton>button {
         background-color: transparent;
@@ -68,10 +55,22 @@ st.markdown("""
     .student-row {
         display: flex;
         align-items: center;
-        padding: 10px;
-        margin: 5px 0;
+        padding: 15px;
+        margin: 15px 0;
         background-color: #ffffff;
-        border-radius: 5px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        position: relative;
+    }
+    .student-row::after {
+        content: "";
+        position: absolute;
+        bottom: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+        height: 2px;
+        background: linear-gradient(to right, transparent, #0066cc, transparent);
     }
     div[data-testid="stFileUploader"] {
         width: 50px;
@@ -219,14 +218,29 @@ if not st.session_state.estudiantes.empty:
         
         # Mostrar niveles de rendimiento
         st.markdown("##### Niveles de Rendimiento:")
+        
+        # Clasificar estudiantes por nivel
         niveles = {
-            'Excelente (90-100%)': len(df_stats[df_stats['Porcentaje'] >= 90]),
-            'Bueno (70-89%)': len(df_stats[(df_stats['Porcentaje'] >= 70) & (df_stats['Porcentaje'] < 90)]),
-            'Regular (60-69%)': len(df_stats[(df_stats['Porcentaje'] >= 60) & (df_stats['Porcentaje'] < 70)]),
-            'En riesgo (<60%)': len(df_stats[df_stats['Porcentaje'] < 60])
+            'Excelente (90-100%)': df_stats[df_stats['Porcentaje'] >= 90]['Nombre'].tolist(),
+            'Bueno (70-89%)': df_stats[(df_stats['Porcentaje'] >= 70) & (df_stats['Porcentaje'] < 90)]['Nombre'].tolist(),
+            'Regular (60-69%)': df_stats[(df_stats['Porcentaje'] >= 60) & (df_stats['Porcentaje'] < 70)]['Nombre'].tolist(),
+            'En riesgo (<60%)': df_stats[df_stats['Porcentaje'] < 60)]['Nombre'].tolist()
         }
         
-        for nivel, cantidad in niveles.items():
+        for nivel, estudiantes in niveles.items():
+            cantidad = len(estudiantes)
             st.write(f"{nivel}: **{cantidad}** estudiantes")
+            if cantidad > 0:
+                nombres = ", ".join(estudiantes)
+                if nivel == 'Excelente (90-100%)':
+                    st.markdown(f"**Estudiantes**: _{nombres}_")
+                else:
+                    st.write(f"Estudiantes: {nombres}")
+        
+        # Destacar mejor estudiante
+        if not df_stats.empty:
+            mejor = df_stats.loc[df_stats['Porcentaje'].idxmax()]
+            st.markdown("---")
+            st.markdown(f"⭐ **Mejor estudiante**: **{mejor['Nombre']}** con **{mejor['Porcentaje']:.1f}%** de rendimiento")
         
         st.markdown("</div>", unsafe_allow_html=True)
