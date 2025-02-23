@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 import base64
-from io import StringIO
+from io import BytesIO
 
 # Configuración de la página
 st.set_page_config(page_title="CONTROL DE PARTICIPACIÓN", layout="wide")
@@ -110,32 +110,16 @@ class ControlParticipacion:
         
         st.markdown("<h1 class='title'>CONTROL DE PARTICIPACIÓN</h1>", unsafe_allow_html=True)
 
-    def cargar_archivo_txt(self, tipo):
-        archivo = st.file_uploader(f"CARGAR ARCHIVO {tipo.upper()}", type=['txt'])
+    def cargar_archivo_jpg(self):
+        archivo = st.file_uploader("CARGAR IMAGEN DE PREGUNTAS", type=['jpg', 'jpeg'])
         if archivo is not None:
             try:
-                contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
-                contenido = [linea.strip() for linea in contenido if linea.strip()]
-                
-                if tipo == "estudiantes":
-                    for estudiante in contenido:
-                        if estudiante not in st.session_state.estudiantes['Nombre'].values:
-                            nuevo_df = pd.DataFrame({
-                                'Nombre': [estudiante],
-                                'Participaciones': [0],
-                                'Puntaje': [0]
-                            })
-                            st.session_state.estudiantes = pd.concat(
-                                [st.session_state.estudiantes, nuevo_df],
-                                ignore_index=True
-                            )
-                    st.success("Estudiantes cargados exitosamente")
-                
-                elif tipo == "preguntas":
-                    st.session_state.preguntas.extend(contenido)
-                    st.success("Preguntas cargadas exitosamente")
+                imagen = archivo.read()
+                imagen_b64 = base64.b64encode(imagen).decode()
+                st.session_state.preguntas.append(imagen_b64)
+                st.success("Imagen cargada exitosamente")
             except Exception as e:
-                st.error(f"Error al cargar el archivo: {str(e)}")
+                st.error(f"Error al cargar la imagen: {str(e)}")
 
     def eliminar_estudiante(self, nombre):
         st.session_state.estudiantes = st.session_state.estudiantes[
@@ -163,7 +147,7 @@ class ControlParticipacion:
                     else:
                         st.error("Este estudiante ya existe")
         with col3:
-            self.cargar_archivo_txt("estudiantes")
+            self.cargar_archivo_jpg()
 
     def mostrar_estudiantes(self):
         col1, col2 = st.columns([3, 1])
@@ -266,7 +250,7 @@ class ControlParticipacion:
                 if nueva_pregunta:
                     st.session_state.preguntas.append(nueva_pregunta)
         with col3:
-            self.cargar_archivo_txt("preguntas")
+            self.cargar_archivo_jpg()
 
         for i, pregunta in enumerate(st.session_state.preguntas):
             with st.container():
@@ -276,7 +260,7 @@ class ControlParticipacion:
                 )
                 cols = st.columns([4, 1])
                 with cols[0]:
-                    st.write(f"{i+1}. {pregunta}")
+                    st.image(f"data:image/jpeg;base64,{pregunta}", use_column_width=True)
                 with cols[1]:
                     if i in st.session_state.preguntas_completadas:
                         if st.button("Desmarcar", key=f"uncheck_{i}"):
