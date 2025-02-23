@@ -28,14 +28,16 @@ st.markdown("""
     }
     .logo-upload {
         position: absolute;
-        top: 10px;
-        left: 10px;
-        width: 25%;
+        top: 5px;
+        left: 5px;
+        width: 30px;
+        height: 30px;
         z-index: 100;
     }
     .logo-container {
-        text-align: center;
-        margin-bottom: 1rem;
+        text-align: left;
+        margin: 10px 0 20px 10px;
+        max-width: 200px;
     }
     .student-section {
         font-size: 1.1em;
@@ -93,7 +95,7 @@ class ControlParticipacion:
     def cargar_logo(self):
         with st.container():
             st.markdown('<div class="logo-upload">', unsafe_allow_html=True)
-            logo_file = st.file_uploader("LOGO", type=['png', 'jpg', 'jpeg'])
+            logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'])
             st.markdown('</div>', unsafe_allow_html=True)
             if logo_file is not None:
                 st.session_state.logo = base64.b64encode(logo_file.read()).decode()
@@ -102,7 +104,7 @@ class ControlParticipacion:
         if st.session_state.logo:
             st.markdown(f"""
                 <div class="logo-container">
-                    <img src="data:image/png;base64,{st.session_state.logo}" width="300"/>
+                    <img src="data:image/png;base64,{st.session_state.logo}" width="150"/>
                 </div>
             """, unsafe_allow_html=True)
         
