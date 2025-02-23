@@ -315,4 +315,3 @@ class ControlParticipacion:
 if __name__ == "__main__":
     app = ControlParticipacion()
     app.run()
-    # Pepito Prueba 19_30_2025
