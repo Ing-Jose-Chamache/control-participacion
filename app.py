@@ -247,11 +247,30 @@ class ControlParticipacion:
             )
             # Limpiar estados de iconos
             st.session_state.iconos_estado = {}
-            
-            st.success("Lista de estudiantes eliminada completamente")
-            
+            return True
         except Exception as e:
             st.error(f"Error al limpiar lista: {str(e)}")
+            return False
+
+    def cargar_preguntas_txt(self):
+        archivo = st.file_uploader("CARGAR PREGUNTAS (TXT)", type=['txt'], key="preguntas_uploader")
+        if archivo is not None:
+            try:
+                contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
+                st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
+                st.success("Preguntas cargadas exitosamente")
+            except Exception as e:
+                st.error(f"Error al cargar preguntas: {str(e)}")
+
+    def eliminar_pregunta(self, index):
+        if 0 <= index < len(st.session_state.preguntas):
+            del st.session_state.preguntas[index]
+            return True
+        return False
+
+    def limpiar_preguntas(self):
+        st.session_state.preguntas = []
+        return True
 
     def agregar_estudiante(self):
         col1, col2, col3 = st.columns([2, 1, 1])
@@ -393,41 +412,83 @@ class ControlParticipacion:
                     )
                     st.plotly_chart(fig_pie, use_container_width=True)
 
-    def gestionar_preguntas(self):
-        st.markdown("### PREGUNTAS PLANIFICADAS")
-        col1, col2, col3 = st.columns([2, 1, 1])
+    def mostrar_preguntas(self):
+        st.sidebar.markdown("### PREGUNTAS")
         
-        with col1:
-            nueva_pregunta = st.text_input("ESCRIBA UNA NUEVA PREGUNTA")
-        with col2:
-            if st.button("AGREGAR PREGUNTA"):
-                if nueva_pregunta:
-                    st.session_state.preguntas.append(nueva_pregunta)
-        with col3:
-            self.cargar_archivo_txt("preguntas")
+        # Cargar preguntas desde TXT
+        self.cargar_preguntas_txt()
+        
+        if 'preguntas' in st.session_state and st.session_state.preguntas:
+            # Contenedor para el carrusel de preguntas
+            st.markdown("""
+                <style>
+                .pregunta-card {
+                    background-color: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin: 10px 0;
+                    position: relative;
+                }
+                .pregunta-numero {
+                    position: absolute;
+                    top: 5px;
+                    right: 5px;
+                    color: #6c757d;
+                    font-size: 0.8em;
+                }
+                .pregunta-nav {
+                    display: flex;
+                    justify-content: center;
+                    gap: 10px;
+                    margin-top: 10px;
+                }
+                </style>
+            """, unsafe_allow_html=True)
 
-        for i, pregunta in enumerate(st.session_state.preguntas):
-            with st.container():
-                st.markdown(
-                    f'<div class="question-box{" question-completed" if i in st.session_state.preguntas_completadas else ""}">',
-                    unsafe_allow_html=True
-                )
-                cols = st.columns([4, 1])
-                with cols[0]:
-                    st.write(f"{i+1}. {pregunta}")
-                with cols[1]:
-                    if i in st.session_state.preguntas_completadas:
-                        if st.button("Desmarcar", key=f"uncheck_{i}"):
-                            st.session_state.preguntas_completadas.remove(i)
-                    else:
-                        if st.button("Completar", key=f"check_{i}"):
-                            st.session_state.preguntas_completadas.add(i)
-                st.markdown('</div>', unsafe_allow_html=True)
+            # Control de navegación
+            if 'pregunta_actual' not in st.session_state:
+                st.session_state.pregunta_actual = 0
 
-        if st.button("LIMPIAR PREGUNTAS"):
-            st.session_state.preguntas = []
-            st.session_state.preguntas_completadas = set()
-            st.success("Lista de preguntas limpiada exitosamente")
+            # Mostrar pregunta actual
+            total_preguntas = len(st.session_state.preguntas)
+            
+            col1, col2, col3 = st.columns([1, 6, 1])
+            
+            with col1:
+                if st.button("⬅️", key="prev_question", disabled=st.session_state.pregunta_actual == 0):
+                    st.session_state.pregunta_actual = max(0, st.session_state.pregunta_actual - 1)
+                    st.rerun()
+            
+            with col2:
+                st.markdown(f"""
+                    <div class="pregunta-card">
+                        <div class="pregunta-numero">Pregunta {st.session_state.pregunta_actual + 1}/{total_preguntas}</div>
+                        <p>{st.session_state.preguntas[st.session_state.pregunta_actual]}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Botones de control para la pregunta actual
+                col_del, col_clear = st.columns(2)
+                with col_del:
+                    if st.button("🗑️ Eliminar Pregunta", key="del_current", type="secondary"):
+                        if self.eliminar_pregunta(st.session_state.pregunta_actual):
+                            if st.session_state.pregunta_actual >= len(st.session_state.preguntas):
+                                st.session_state.pregunta_actual = max(0, len(st.session_state.preguntas) - 1)
+                            st.success("Pregunta eliminada")
+                            st.rerun()
+                
+                with col_clear:
+                    if st.button("🗑️ Eliminar Todas", key="clear_questions", type="secondary"):
+                        if self.limpiar_preguntas():
+                            st.session_state.pregunta_actual = 0
+                            st.success("Todas las preguntas eliminadas")
+                            st.rerun()
+            
+            with col3:
+                if st.button("➡️", key="next_question", disabled=st.session_state.pregunta_actual >= total_preguntas - 1):
+                    st.session_state.pregunta_actual = min(total_preguntas - 1, st.session_state.pregunta_actual + 1)
+                    st.rerun()
 
     def mostrar_creditos(self):
         st.markdown("""
@@ -441,12 +502,31 @@ class ControlParticipacion:
     def run(self):
         self.cargar_logo()
         self.mostrar_header()
-        self.agregar_estudiante()
+        
+        # Columna principal y sidebar
+        col_main, col_questions = st.columns([7, 3])
+        
+        with col_main:
+            self.agregar_estudiante()
+            st.markdown("---")
+            self.mostrar_estudiantes()
+            
+            # Botones de control al final
+            if len(st.session_state.estudiantes) > 0:
+                if st.button("❌ ELIMINAR TODOS LOS ESTUDIANTES", type="secondary", 
+                           help="Eliminar todos los estudiantes",
+                           use_container_width=True):
+                    if self.limpiar_lista_estudiantes():
+                        st.success("Todos los estudiantes han sido eliminados")
+                        time.sleep(0.1)
+                        st.rerun()
+            
+            self.mostrar_graficos()
+        
+        with col_questions:
+            self.mostrar_preguntas()
+        
         st.markdown("---")
-        self.mostrar_estudiantes()
-        self.mostrar_graficos()
-        st.markdown("---")
-        self.gestionar_preguntas()
         self.mostrar_creditos()
 
 # Iniciar la aplicación
