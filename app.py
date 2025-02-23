@@ -93,11 +93,38 @@ st.markdown("""
     }
     .upload-students {
         bottom: 10px;
-        left: 10px;
+        right: 70px;
     }
     .upload-questions {
         bottom: 10px;
         right: 10px;
+    }
+    .credits {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 25px;
+        border-radius: 15px;
+        margin-top: 40px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border: 1px solid #dee2e6;
+    }
+    .credits h2 {
+        color: #0066cc;
+        font-size: 1.5em;
+        margin-bottom: 20px;
+        font-weight: bold;
+    }
+    .credits-info {
+        color: #495057;
+        font-size: 1.1em;
+        line-height: 1.8;
+        margin: 10px 0;
+    }
+    .credits-divider {
+        height: 2px;
+        background: linear-gradient(to right, transparent, #0066cc, transparent);
+        margin: 15px auto;
+        width: 50%;
     }
     /* Ocultar flechas del input number */
     input[type=number]::-webkit-inner-spin-button, 
