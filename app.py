@@ -99,18 +99,37 @@ st.markdown("""
         align-items: center;
     }
     
-    .participation-icon {
-        cursor: pointer;
-        font-size: 20px;
+    .stButton button {
+        padding: 0 10px;
+    }
+    
+    /* Estilo para los botones de puntos */
+    .stButton button:contains("⬤") {
+        color: #cccccc !important;
+        background-color: transparent !important;
+        border: none !important;
         transition: color 0.3s ease;
+        padding: 0 5px;
+        font-size: 24px;
     }
     
-    .participation-icon.active {
-        color: #00ff00;
+    /* Puntos activos en amarillo */
+    .stButton button[data-testid="secondary"]:contains("⬤") {
+        color: #FFD700 !important;
     }
     
-    .participation-icon.inactive {
-        color: #cccccc;
+    /* Botón de eliminar */
+    .stButton button:contains("🗑️") {
+        color: #ff4b4b;
+        background-color: transparent;
+        border: none;
+    }
+    
+    /* Botón de eliminar todos */
+    .stButton button:contains("ELIMINAR TODOS") {
+        background-color: #ff4b4b;
+        color: white;
+        margin-top: 20px;
     }
     
     .student-row {
@@ -196,9 +215,34 @@ class ControlParticipacion:
                 st.error(f"Error al cargar el archivo: {str(e)}")
 
     def eliminar_estudiante(self, nombre):
-        st.session_state.estudiantes = st.session_state.estudiantes[
-            st.session_state.estudiantes['Nombre'] != nombre
-        ].reset_index(drop=True)
+        try:
+            # Eliminar estudiante del DataFrame
+            st.session_state.estudiantes = st.session_state.estudiantes[
+                st.session_state.estudiantes['Nombre'] != nombre
+            ].reset_index(drop=True)
+            
+            # Eliminar estado de iconos del estudiante
+            if nombre in st.session_state.iconos_estado:
+                del st.session_state.iconos_estado[nombre]
+                
+            st.success(f"Estudiante {nombre} eliminado exitosamente")
+            
+        except Exception as e:
+            st.error(f"Error al eliminar estudiante: {str(e)}")
+
+    def limpiar_lista_estudiantes(self):
+        try:
+            # Limpiar DataFrame
+            st.session_state.estudiantes = pd.DataFrame(
+                columns=['Nombre', 'Participaciones', 'Puntaje']
+            )
+            # Limpiar estados de iconos
+            st.session_state.iconos_estado = {}
+            
+            st.success("Lista de estudiantes eliminada completamente")
+            
+        except Exception as e:
+            st.error(f"Error al limpiar lista: {str(e)}")
 
     def agregar_estudiante(self):
         col1, col2, col3 = st.columns([2, 1, 1])
@@ -254,20 +298,21 @@ class ControlParticipacion:
                 
                 with cols[1]:
                     # Mostrar iconos interactivos
-                    iconos_html = ""
                     for i in range(st.session_state.participaciones_esperadas):
                         icon_key = f"icon_{nombre}_{i}"
                         is_active = st.session_state.iconos_estado[nombre][i]
-                        icon_style = "color: #00ff00;" if is_active else "color: #cccccc;"
-                        if st.button("⬤", key=icon_key, help="Click para marcar/desmarcar participación"):
-                            st.session_state.iconos_estado[nombre][i] = not is_active
-                            # Recalcular participaciones y puntaje
-                            participaciones = sum(st.session_state.iconos_estado[nombre])
-                            idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == nombre].index[0]
-                            st.session_state.estudiantes.loc[idx, 'Participaciones'] = participaciones
-                            puntaje = (participaciones * 20) / st.session_state.participaciones_esperadas
-                            st.session_state.estudiantes.loc[idx, 'Puntaje'] = round(puntaje, 1)
-                            st.rerun()
+                        if st.button("⬤", key=icon_key, 
+                                   help="Click para marcar participación correcta",
+                                   type="secondary" if is_active else "primary"):
+                            if not is_active:  # Solo permitir activar, no desactivar
+                                st.session_state.iconos_estado[nombre][i] = True
+                                # Recalcular participaciones y puntaje
+                                participaciones = sum(st.session_state.iconos_estado[nombre])
+                                idx = st.session_state.estudiantes[st.session_state.estudiantes['Nombre'] == nombre].index[0]
+                                st.session_state.estudiantes.loc[idx, 'Participaciones'] = participaciones
+                                puntaje = (participaciones * 20) / st.session_state.participaciones_esperadas
+                                st.session_state.estudiantes.loc[idx, 'Puntaje'] = round(puntaje, 1)
+                                st.rerun()
                 
                 with cols[2]:
                     participaciones = sum(st.session_state.iconos_estado[nombre])
@@ -275,20 +320,18 @@ class ControlParticipacion:
                     st.write(f"Nota: {round(puntaje, 1)}")
                 
                 with cols[3]:
-                    if st.button("🗑️", key=f"delete_{nombre}"):
-                        self.eliminar_estudiante(nombre)
-                        if nombre in st.session_state.iconos_estado:
-                            del st.session_state.iconos_estado[nombre]
+                    if st.button("🗑️", key=f"delete_{nombre}", 
+                               help="Eliminar estudiante",
+                               on_click=lambda: self.eliminar_estudiante(nombre)):
                         st.rerun()
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
-        if st.button("LIMPIAR LISTA DE ESTUDIANTES"):
-            st.session_state.estudiantes = pd.DataFrame(
-                columns=['Nombre', 'Participaciones', 'Puntaje']
-            )
-            st.session_state.iconos_estado = {}
-            st.success("Lista de estudiantes limpiada exitosamente")
+        if len(st.session_state.estudiantes) > 0:
+            if st.button("ELIMINAR TODOS LOS ESTUDIANTES", type="secondary",
+                        help="Eliminar toda la lista de estudiantes",
+                        on_click=self.limpiar_lista_estudiantes):
+                st.rerun()
 
     def mostrar_graficos(self):
         if not st.session_state.estudiantes.empty:
