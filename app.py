@@ -165,7 +165,6 @@ st.markdown("""
 
 class ControlParticipacion:
     def __init__(self):
-        # Inicializar las variables de estado si no existen
         if 'estudiantes' not in st.session_state:
             st.session_state.estudiantes = pd.DataFrame(
                 columns=['Nombre', 'Participaciones', 'Puntaje']
@@ -180,8 +179,12 @@ class ControlParticipacion:
             st.session_state.iconos_estado = {}
         if 'logo' not in st.session_state:
             st.session_state.logo = None
-        if 'cargar_preguntas' not in st.session_state:
-            st.session_state.cargar_preguntas = False
+
+        # Ocultar mensajes de error
+        st.set_option('client.showErrorDetails', False)
+        
+        # Aplicar estilos para ocultar elementos no deseados
+        self.aplicar_estilos()
         
         # Aplicar estilos globales
         st.markdown("""
@@ -271,31 +274,31 @@ class ControlParticipacion:
             return False
 
     def cargar_preguntas_txt(self):
-        uploaded_file = st.file_uploader(
-            "📄",
-            type=['txt'],
-            key="uploaded_preguntas",
-            label_visibility="collapsed"
-        )
-        
-        if uploaded_file is not None:
-            try:
-                # Leer el contenido del archivo
+        """Maneja la carga del archivo de preguntas de forma silenciosa."""
+        try:
+            uploaded_file = st.file_uploader(
+                "📄",
+                type=['txt'],
+                label_visibility="collapsed",
+                key="preguntas_upload"
+            )
+            
+            if uploaded_file is not None:
+                # Leer contenido
                 contenido = uploaded_file.read().decode('utf-8')
-                # Procesar las preguntas
-                preguntas = [linea.strip() for linea in contenido.split('\n') if linea.strip()]
+                preguntas = [linea.strip() for linea in contenido.splitlines() if linea.strip()]
                 
                 if preguntas:
-                    # Actualizar el estado
                     st.session_state.preguntas = preguntas
                     st.session_state.pregunta_actual = 0
-                    
-                    # Limpiar el uploader
-                    st.session_state.uploaded_preguntas = None
-                    st.rerun()
-            except Exception as e:
-                # Silenciar errores
-                pass
+                
+                # Forzar actualización
+                placeholder = st.empty()
+                placeholder.empty()
+                st.experimental_rerun()
+                
+        except:
+            pass  # Ignora cualquier error silenciosamente
 
     def eliminar_pregunta(self, index):
         if 0 <= index < len(st.session_state.preguntas):
