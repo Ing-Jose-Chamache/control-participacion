@@ -261,7 +261,7 @@ if logo_file:
     st.image(logo_file, width=745)
 else:
     # Logo predeterminado (usar la URL de la imagen del Grafiquito)
-    st.image("https://raw.githubusercontent.com/jychamacheitnow/logos/main/grafiquito.png", width=745)
+    st.image("https://github.com/Ing-Jose-Chamache/imagenesjch/blob/main/GRAFIQUITO.jpg?raw=true", width=745)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -269,7 +269,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown(
     f'<div class="ruleta-link">'
     f'<a href="https://miruletajychch.streamlit.app/" target="_blank">'
-    f'<img src="https://raw.githubusercontent.com/jychamacheitnow/logos/main/ruleta_icon.png" width="182" height="220">'
+    f'<img src="https://github.com/Ing-Jose-Chamache/imagenesjch/blob/main/ruleta-logo.png?raw=true" width="182" height="220">'
     f'</a>'
     f'</div>',
     unsafe_allow_html=True
