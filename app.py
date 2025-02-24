@@ -106,30 +106,32 @@ st.markdown("""
     }
     .credits {
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        padding: 25px;
-        border-radius: 15px;
-        margin-top: 40px;
+        padding: 15px;
+        border-radius: 10px;
+        margin-top: 30px;
         text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        border: 1px solid #dee2e6;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border: 1px solid #eee;
+        font-size: 0.9em;
     }
     .credits h2 {
         color: #0066cc;
-        font-size: 1.5em;
-        margin-bottom: 20px;
+        font-size: 1.2em;
+        margin-bottom: 15px;
         font-weight: bold;
     }
     .credits-info {
-        color: #495057;
-        font-size: 1.1em;
-        line-height: 1.8;
-        margin: 10px 0;
+        color: #666;
+        font-size: 0.95em;
+        line-height: 1.6;
+        margin: 8px 0;
     }
     .credits-divider {
-        height: 2px;
+        height: 1px;
         background: linear-gradient(to right, transparent, #0066cc, transparent);
-        margin: 15px auto;
-        width: 50%;
+        margin: 10px auto;
+        width: 40%;
+        opacity: 0.5;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -150,7 +152,7 @@ logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'], key="logo")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if logo_file:
-    st.image(logo_file, width=270)  # 35% más grande
+    st.image(logo_file, width=324)  # 20% adicional sobre 270px
 
 # Configuración inicial
 col1, col2, _ = st.columns([2, 1, 1])
