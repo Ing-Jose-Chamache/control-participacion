@@ -93,7 +93,6 @@ st.markdown("""
         bottom: 10px;
         right: 10px;
     }
-    /* Ocultar flechas del input number */
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button { 
         -webkit-appearance: none;
@@ -178,7 +177,7 @@ logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'], key="logo")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if logo_file:
-    st.image(logo_file, width=373)  # 15% más grande que antes
+    st.image(logo_file, width=373)
 
 # Configuración inicial
 col1, col2, _ = st.columns([2, 1, 1])
@@ -220,8 +219,7 @@ if students_file:
         st.success(f"Se cargaron {len(contenido)} estudiantes")
     except Exception as e:
         st.error(f"Error al cargar estudiantes: {str(e)}")
-
-# Mostrar preguntas
+        # Mostrar preguntas
 if st.session_state.preguntas:
     st.markdown("<div class='question-container'>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 3, 1])
@@ -255,7 +253,6 @@ for idx, estudiante in st.session_state.estudiantes.iterrows():
                 st.session_state.estudiantes.loc[idx, 'Respuestas_Correctas'] = sum(1 for r in respuestas if r == '1')
                 st.rerun()
     with col3:
-        # Mostrar nota
         nota = (sum(1 for r in estudiante['Respuestas'] if r == '1') / st.session_state.num_preguntas) * 20
         nota = round(nota, 1)
         if nota >= 14:
@@ -325,4 +322,78 @@ if not st.session_state.estudiantes.empty:
         st.markdown("</div>", unsafe_allow_html=True)
         
         # Clasificación por niveles
-        st.markdown("<div class='stats-subtitle'>Niveles de Rendimiento:</div>
+        st.markdown('<div class="stats-subtitle">Niveles de Rendimiento:</div>', unsafe_allow_html=True)
+        niveles = {
+            'Excelente (90-100%)': df_stats[df_stats['Porcentaje'] >= 90]['Nombre'].tolist(),
+            'Bueno (70-89%)': df_stats[(df_stats['Porcentaje'] >= 70) & (df_stats['Porcentaje'] < 90)]['Nombre'].tolist(),
+            'Regular (60-69%)': df_stats[(df_stats['Porcentaje'] >= 60) & (df_stats['Porcentaje'] < 70)]['Nombre'].tolist(),
+            'En riesgo (<60%)': df_stats[df_stats['Porcentaje'] < 60]['Nombre'].tolist()
+        }
+
+        for nivel, estudiantes in niveles.items():
+            st.write(f"{nivel}: **{len(estudiantes)}** estudiantes")
+            if estudiantes:
+                st.write(f"_{', '.join(estudiantes)}_")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col4:
+        st.markdown("<div class='performance-stats'>", unsafe_allow_html=True)
+        st.markdown("<div class='stats-title'>Notas Vigesimales (0-20)</div>", unsafe_allow_html=True)
+        
+        # Notas por estudiante
+        st.markdown("<div class='stats-subtitle'>Calificaciones:</div>", unsafe_allow_html=True)
+        
+        # Calcular y mostrar notas
+        for _, estudiante in df_stats.iterrows():
+            nota = (estudiante['Respuestas_Correctas'] / st.session_state.num_preguntas) * 20
+            nota = round(nota, 1)
+            
+            # Determinar color según la nota
+            if nota >= 14:
+                color = '#28a745'  # Verde (Aprobado)
+                estado = "✓ APROBADO"
+            elif nota >= 11:
+                color = '#ffc107'  # Amarillo (Regular)
+                estado = "⚠ REGULAR"
+            else:
+                color = '#dc3545'  # Rojo (Desaprobado)
+                estado = "✗ DESAPROBADO"
+            
+            # Mostrar cada nota con formato
+            st.markdown(f"""
+                <div style='
+                    background-color: #f8f9fa;
+                    padding: 8px;
+                    border-radius: 5px;
+                    margin: 5px 0;
+                    border-left: 4px solid {color};
+                '>
+                    <strong>{estudiante['Nombre']}</strong><br/>
+                    Nota: <span style='color:{color};font-size:1.1em;font-weight:bold'>{nota}</span><br/>
+                    <span style='color:{color};font-size:0.9em'>{estado}</span>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # Mostrar promedio del aula
+        promedio = df_stats['Respuestas_Correctas'].mean() * 20 / st.session_state.num_preguntas
+        st.markdown("<div class='stats-highlight' style='margin-top:15px'>", unsafe_allow_html=True)
+        st.markdown(f"📊 **Promedio del aula**: {promedio:.1f}")
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# Créditos
+st.markdown("""
+    <div class="credits">
+        <h2>Créditos</h2>
+        <div class="credits-divider"></div>
+        <div class="credits-info">
+            <strong>Desarrollador:</strong> Ing. José Yván Chamache Chiong<br>
+            <strong>Lenguaje:</strong> Python<br>
+            <strong>Ciudad:</strong> Lima, Febrero 2025<br>
+            <strong>Escuela:</strong> Instructor de la Escuela Profesional de Artes Gráficas
+        </div>
+        <div class="credits-divider"></div>
+    </div>
+""", unsafe_allow_html=True)
