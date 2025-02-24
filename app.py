@@ -25,7 +25,6 @@ def load_state():
         if os.path.exists('app_state.json'):
             with open('app_state.json', 'r') as f:
                 state_data = json.load(f)
-            # Restaurar el DataFrame
             st.session_state.estudiantes = pd.DataFrame.from_dict(state_data['estudiantes'])
             st.session_state.preguntas = state_data['preguntas']
             st.session_state.pregunta_actual = state_data['pregunta_actual']
@@ -178,6 +177,20 @@ st.markdown("""
         border-radius: 5px;
         margin: 8px 0;
     }
+    .ruleta-section {
+        padding: 20px;
+        margin: 20px auto 40px auto;
+        max-width: 90%;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .divider {
+        height: 2px;
+        background: linear-gradient(to right, transparent, #0066cc, transparent);
+        margin: 40px auto;
+        width: 80%;
+    }
     .credits {
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         padding: 12px;
@@ -207,20 +220,6 @@ st.markdown("""
         width: 35%;
         opacity: 0.4;
     }
-    .ruleta-section {
-        padding: 20px;
-        margin: 20px auto 40px auto;
-        max-width: 90%;
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .divider {
-        height: 2px;
-        background: linear-gradient(to right, transparent, #0066cc, transparent);
-        margin: 40px auto;
-        width: 80%;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -246,7 +245,7 @@ if 'pregunta_actual' not in st.session_state:
 if 'num_preguntas' not in st.session_state:
     st.session_state.num_preguntas = 5
 
-# Botones de carga
+# Botones de carga y logo
 st.markdown('<div class="upload-container upload-logo">', unsafe_allow_html=True)
 logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'], key="logo")
 st.markdown('</div>', unsafe_allow_html=True)
@@ -270,12 +269,198 @@ components.html("""
             gap: 2rem;
             padding: 1rem;
         }
+        svg {
+            max-width: 100%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
     <div id="ruleta-root"></div>
     <script type="text/babel">
-""" + open("paste.txt").read() + """
+        const RuletaPreviewFinal = () => {
+          const [rotation, setRotation] = React.useState(0);
+          const [nombres, setNombres] = React.useState(["TUPIA", "ALVITES", "CHAVEZ", "ESPINOZA", "TORRES"]);
+          const [textAreaValue, setTextAreaValue] = React.useState(nombres.join('\\n'));
+          const [ganador, setGanador] = React.useState('');
+          const [isSpinning, setIsSpinning] = React.useState(false);
+          const [indicadorAngulo, setIndicadorAngulo] = React.useState(null);
+          
+          const colors = ['#FF9999', '#99FF99', '#9999FF', '#FFFF99', '#FF99FF'];
+          const anglePerSection = 360 / nombres.length;
+          
+          const handleSpin = () => {
+            if (isSpinning) return;
+            
+            setIsSpinning(true);
+            setGanador('');
+            setIndicadorAngulo(null);
+            const newRotation = rotation + 1440 + Math.random() * 360;
+            setRotation(newRotation);
+            
+            setTimeout(() => {
+              const finalAngle = newRotation % 360;
+              const winnerIndex = Math.floor(finalAngle / anglePerSection);
+              setGanador(nombres[winnerIndex % nombres.length]);
+              setIndicadorAngulo(finalAngle + (anglePerSection / 2));
+              setIsSpinning(false);
+            }, 4000);
+          };
+          
+          const handleTextChange = (e) => {
+            setTextAreaValue(e.target.value);
+          };
+          
+          const handleLoadNames = () => {
+            const newNames = textAreaValue
+              .split('\\n')
+              .map(name => name.trim())
+              .filter(name => name.length > 0);
+            if (newNames.length > 0) {
+              setNombres(newNames);
+              setGanador('');
+              setIndicadorAngulo(null);
+            }
+          };
+          
+          const renderWinnerArrow = () => {
+            if (!indicadorAngulo || isSpinning) return null;
+            
+            const arrowLength = 20;
+            const arrowWidth = 10;
+            const centerX = 50;
+            const centerY = 50;
+            const radius = 45;
+            
+            const angle = (indicadorAngulo - 90) * (Math.PI / 180);
+            const tipX = centerX + (radius + 5) * Math.cos(angle);
+            const tipY = centerY + (radius + 5) * Math.sin(angle);
+            
+            const baseAngle = angle + Math.PI;
+            const baseX = tipX + arrowLength * Math.cos(baseAngle);
+            const baseY = tipY + arrowLength * Math.sin(baseAngle);
+            
+            const leftX = tipX + arrowWidth * Math.cos(baseAngle + Math.PI/2);
+            const leftY = tipY + arrowWidth * Math.sin(baseAngle + Math.PI/2);
+            const rightX = tipX + arrowWidth * Math.cos(baseAngle - Math.PI/2);
+            const rightY = tipY + arrowWidth * Math.sin(baseAngle - Math.PI/2);
+            
+            return (
+              <polygon
+                points={`${tipX},${tipY} ${leftX},${leftY} ${baseX},${baseY} ${rightX},${rightY}`}
+                fill="gold"
+                stroke="darkgolden"
+                strokeWidth="0.5"
+              />
+            );
+          };
+          return (
+            <div className="flex flex-row gap-4 p-4 bg-gray-100 rounded-lg">
+              <div className="flex flex-col bg-white p-4 rounded shadow">
+                <label className="text-sm font-semibold mb-2">Lista de Nombres:</label>
+                <textarea 
+                  className="border p-2 h-64 w-48 mb-2 font-mono text-sm"
+                  value={textAreaValue}
+                  onChange={handleTextChange}
+                  placeholder="Ingrese nombres aquí, uno por línea"
+                />
+                <button 
+                  onClick={handleLoadNames}
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  Cargar Nombres
+                </button>
+              </div>
+
+              <div className="flex flex-col items-center bg-white p-4 rounded shadow">
+                <div className="relative w-80 h-80">
+                  <svg 
+                    className="w-full h-full"
+                    viewBox="0 0 100 100"
+                    style={{
+                      transform: `rotate(${rotation}deg)`,
+                      transition: 'transform 4s cubic-bezier(0.2, 0.8, 0.2, 1)'
+                    }}
+                  >
+                    {nombres.map((nombre, index) => {
+                      const startAngle = index * anglePerSection;
+                      const endAngle = (index + 1) * anglePerSection;
+                      
+                      const startRad = (startAngle - 90) * Math.PI / 180;
+                      const endRad = (endAngle - 90) * Math.PI / 180;
+                      
+                      const startX = 50 + 45 * Math.cos(startRad);
+                      const startY = 50 + 45 * Math.sin(startRad);
+                      const endX = 50 + 45 * Math.cos(endRad);
+                      const endY = 50 + 45 * Math.sin(endRad);
+                      
+                      const largeArcFlag = anglePerSection <= 180 ? 0 : 1;
+                      
+                      const pathData = `
+                        M 50 50
+                        L ${startX} ${startY}
+                        A 45 45 0 ${largeArcFlag} 1 ${endX} ${endY}
+                        Z
+                      `;
+                      
+                      const textAngle = (startAngle + endAngle) / 2;
+                      const textRad = (textAngle - 90) * Math.PI / 180;
+                      const textX = 50 + 30 * Math.cos(textRad);
+                      const textY = 50 + 30 * Math.sin(textRad);
+                      
+                      return (
+                        <g key={index}>
+                          <path
+                            d={pathData}
+                            fill={colors[index % colors.length]}
+                            stroke="white"
+                            strokeWidth="0.5"
+                          />
+                          <text
+                            x={textX}
+                            y={textY}
+                            fontSize="6"
+                            fill="black"
+                            textAnchor="middle"
+                            transform={`rotate(${textAngle}, ${textX}, ${textY})`}
+                          >
+                            {nombre}
+                          </text>
+                        </g>
+                      );
+                    })}
+                    <circle cx="50" cy="50" r="5" fill="white" stroke="black" />
+                    {renderWinnerArrow()}
+                  </svg>
+                  
+                  <div className="absolute right-0 top-1/2 -mt-2 w-0 h-0 
+                                border-t-8 border-t-transparent
+                                border-l-[16px] border-l-red-600
+                                border-b-8 border-b-transparent">
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={handleSpin}
+                  disabled={isSpinning}
+                  className={`mt-4 px-6 py-2 rounded text-white transition-colors ${
+                    isSpinning ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600'
+                  }`}
+                >
+                  {isSpinning ? 'Girando...' : 'Girar Ruleta'}
+                </button>
+                
+                {ganador && (
+                  <div className="mt-4 text-center">
+                    <h3 className="text-xl font-bold">¡GANADOR!</h3>
+                    <p className="text-2xl font-bold text-blue-600">{ganador}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        };
+
         ReactDOM.render(<RuletaPreviewFinal />, document.getElementById('ruleta-root'));
     </script>
 </body>
@@ -285,6 +470,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 # Agregar un divisor visual
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+
 # Configuración inicial
 col1, col2, _ = st.columns([2, 1, 1])
 with col1:
@@ -296,7 +482,6 @@ with col2:
         save_state()
     except ValueError:
         st.error("Por favor ingrese un número válido")
-
 # Botón para agregar estudiante
 if st.button("AGREGAR ESTUDIANTE") and nuevo_estudiante:
     if nuevo_estudiante not in st.session_state.estudiantes['Nombre'].values:
