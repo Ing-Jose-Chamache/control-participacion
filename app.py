@@ -150,7 +150,7 @@ logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'], key="logo")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if logo_file:
-    st.image(logo_file, width=260)  # 30% más grande
+    st.image(logo_file, width=270)  # 35% más grande
 
 # Configuración inicial
 col1, col2, _ = st.columns([2, 1, 1])
