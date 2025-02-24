@@ -1,18 +1,78 @@
-# Modificación del estilo para posicionar la Ruleta
+# Parte 1: Importaciones y Funciones
+
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import numpy as np
+from datetime import datetime
+import base64
+from io import StringIO
+import json
+import os
+import streamlit.components.v1 as components
+
+# Funciones de persistencia
+def save_state():
+    state_data = {
+        'estudiantes': st.session_state.estudiantes.to_dict(),
+        'preguntas': st.session_state.preguntas,
+        'pregunta_actual': st.session_state.pregunta_actual,
+        'num_preguntas': st.session_state.num_preguntas
+    }
+    with open('app_state.json', 'w') as f:
+        json.dump(state_data, f)
+
+def load_state():
+    try:
+        if os.path.exists('app_state.json'):
+            with open('app_state.json', 'r') as f:
+                state_data = json.load(f)
+            # Restaurar el DataFrame
+            st.session_state.estudiantes = pd.DataFrame.from_dict(state_data['estudiantes'])
+            st.session_state.preguntas = state_data['preguntas']
+            st.session_state.pregunta_actual = state_data['pregunta_actual']
+            st.session_state.num_preguntas = state_data['num_preguntas']
+    except Exception as e:
+        print(f"Error loading state: {e}")
+
+def reset_state():
+    if os.path.exists('app_state.json'):
+        os.remove('app_state.json')
+    st.session_state.estudiantes = pd.DataFrame(columns=['Nombre', 'Respuestas', 'Respuestas_Correctas'])
+    st.session_state.preguntas = []
+    st.session_state.pregunta_actual = 0
+    st.session_state.num_preguntas = 5
+
+# Función para cargar nombres de la ruleta
+def cargar_nombres_ruleta(archivo):
+    try:
+        contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
+        nombres = [nombre.strip() for nombre in contenido if nombre.strip()]
+        return nombres
+    except Exception as e:
+        st.error(f"Error al cargar nombres: {e}")
+        return []
+        # Parte 2: Configuración de Página y Estilos
+
+# Configuración de la página
+st.set_page_config(page_title="Control de Participación", layout="wide")
+
+# Estilo personalizado
 st.markdown("""
     <style>
-    .ruleta-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        margin-bottom: 20px;
+    .main {
+        padding: 1rem;
+        background-color: #f5f5f5;
+    }
+    .stApp {
+        background-color: #f5f5f5;
     }
     .logo-ruleta-wrapper {
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 20px;
+        margin-bottom: 20px;
     }
     .ruleta-upload {
         position: fixed;
@@ -20,8 +80,107 @@ st.markdown("""
         left: 10px;
         z-index: 1000;
     }
+    .stButton>button {
+        background-color: transparent;
+        border: none;
+    }
+    div[data-testid="stFileUploader"] {
+        width: 50px;
+        height: 50px;
+        overflow: hidden;
+        background-color: #9b9b9b;
+    }
+    div[data-testid="stFileUploader"] div {
+        padding: 0 !important;
+    }
+    .question-container {
+        background-color: #FFFACD;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .question-text {
+        color: #0066cc;
+        font-size: 1.2em;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .question-number {
+        font-size: 1.1em;
+        color: #333;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .student-row {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        margin: 20px 0;
+        background-color: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .student-separator {
+        text-align: center;
+        padding: 10px 0;
+    }
+    .separator-dots {
+        color: #0066cc;
+        letter-spacing: 3px;
+        font-size: 20px;
+    }
+    .separator-line {
+        height: 2px;
+        background: linear-gradient(to right, transparent, #0066cc, transparent);
+        margin: 5px auto;
+        width: 80%;
+    }
+    .upload-container {
+        position: fixed;
+        z-index: 1000;
+        width: 50px;
+    }
+    .upload-logo {
+        top: 10px;
+        left: 10px;
+    }
+    .upload-students {
+        bottom: 10px;
+        right: 70px;
+    }
+    .upload-questions {
+        bottom: 10px;
+        right: 10px;
+    }
+    .reset-button {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+    }
+    .reset-button button {
+        background-color: #dc3545 !important;
+        color: white !important;
+        padding: 8px 16px !important;
+        border-radius: 4px !important;
+        border: none !important;
+    }
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+        padding: 5px;
+        font-size: 16px;
+    }
+    /* Resto de los estilos de stats y créditos permanecen igual */
     </style>
 """, unsafe_allow_html=True)
+# Parte 3: Ruleta y Configuración Inicial
 
 # Contenedor para logo y Ruleta
 st.markdown("<div class='logo-ruleta-wrapper'>", unsafe_allow_html=True)
@@ -32,9 +191,8 @@ logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'], key="logo")
 st.markdown('</div>', unsafe_allow_html=True)
 
 # Mostrar logo si está cargado
-logo_column = st.empty()
 if logo_file:
-    logo_column.image(logo_file, width=300)
+    st.image(logo_file, width=300)
 
 # Ruleta file upload
 st.markdown('<div class="upload-container ruleta-upload">', unsafe_allow_html=True)
@@ -225,443 +383,6 @@ components.html(f"""
 """, height=600)
 
 st.markdown("</div>", unsafe_allow_html=True)
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import numpy as np
-from datetime import datetime
-import base64
-from io import StringIO
-import json
-import os
-import streamlit.components.v1 as components
-
-# Funciones de persistencia
-def save_state():
-    state_data = {
-        'estudiantes': st.session_state.estudiantes.to_dict(),
-        'preguntas': st.session_state.preguntas,
-        'pregunta_actual': st.session_state.pregunta_actual,
-        'num_preguntas': st.session_state.num_preguntas
-    }
-    with open('app_state.json', 'w') as f:
-        json.dump(state_data, f)
-
-def load_state():
-    try:
-        if os.path.exists('app_state.json'):
-            with open('app_state.json', 'r') as f:
-                state_data = json.load(f)
-            # Restaurar el DataFrame
-            st.session_state.estudiantes = pd.DataFrame.from_dict(state_data['estudiantes'])
-            st.session_state.preguntas = state_data['preguntas']
-            st.session_state.pregunta_actual = state_data['pregunta_actual']
-            st.session_state.num_preguntas = state_data['num_preguntas']
-    except Exception as e:
-        print(f"Error loading state: {e}")
-
-def reset_state():
-    if os.path.exists('app_state.json'):
-        os.remove('app_state.json')
-    st.session_state.estudiantes = pd.DataFrame(columns=['Nombre', 'Respuestas', 'Respuestas_Correctas'])
-    st.session_state.preguntas = []
-    st.session_state.pregunta_actual = 0
-    st.session_state.num_preguntas = 5
-
-# Función para cargar nombres de la ruleta
-def cargar_nombres_ruleta(archivo):
-    try:
-        contenido = StringIO(archivo.getvalue().decode("utf-8")).read().splitlines()
-        nombres = [nombre.strip() for nombre in contenido if nombre.strip()]
-        return nombres
-    except Exception as e:
-        st.error(f"Error al cargar nombres: {e}")
-        return []
-
-# Configuración de la página
-st.set_page_config(page_title="Control de Participación", layout="wide")
-
-# Estilo personalizado
-st.markdown("""
-    <style>
-    .main {
-        padding: 1rem;
-        background-color: #f5f5f5;
-    }
-    .stApp {
-        background-color: #f5f5f5;
-    }
-    .logo-ruleta-wrapper {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 20px;
-        margin-bottom: 20px;
-    }
-    .ruleta-upload {
-        position: fixed;
-        top: 70px;
-        left: 10px;
-        z-index: 1000;
-    }
-    .stButton>button {
-        background-color: transparent;
-        border: none;
-    }
-    div[data-testid="stFileUploader"] {
-        width: 50px;
-        height: 50px;
-        overflow: hidden;
-        background-color: #9b9b9b;
-    }
-    div[data-testid="stFileUploader"] div {
-        padding: 0 !important;
-    }
-    /* Resto de los estilos originales permanecen igual */
-    .question-container {
-        background-color: #FFFACD;
-        padding: 20px;
-        border-radius: 10px;
-        margin: 20px 0;
-        text-align: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .question-text {
-        color: #0066cc;
-        font-size: 1.2em;
-        font-weight: bold;
-        margin: 10px 0;
-    }
-    .question-number {
-        font-size: 1.1em;
-        color: #333;
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    .student-row {
-        display: flex;
-        align-items: center;
-        padding: 15px;
-        margin: 20px 0;
-        background-color: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .student-separator {
-        text-align: center;
-        padding: 10px 0;
-    }
-    .separator-dots {
-        color: #0066cc;
-        letter-spacing: 3px;
-        font-size: 20px;
-    }
-    .separator-line {
-        height: 2px;
-        background: linear-gradient(to right, transparent, #0066cc, transparent);
-        margin: 5px auto;
-        width: 80%;
-    }
-    .upload-container {
-        position: fixed;
-        z-index: 1000;
-        width: 50px;
-    }
-    .upload-logo {
-        top: 10px;
-        left: 10px;
-    }
-    .upload-students {
-        bottom: 10px;
-        right: 70px;
-    }
-    .upload-questions {
-        bottom: 10px;
-        right: 10px;
-    }
-    .reset-button {
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        z-index: 1000;
-    }
-    .reset-button button {
-        background-color: #dc3545 !important;
-        color: white !important;
-        padding: 8px 16px !important;
-        border-radius: 4px !important;
-        border: none !important;
-    }
-    input[type=number]::-webkit-inner-spin-button, 
-    input[type=number]::-webkit-outer-spin-button { 
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    input[type=number] {
-        -moz-appearance: textfield;
-        padding: 5px;
-        font-size: 16px;
-    }
-    .performance-stats {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-    .stats-title {
-        color: #0066cc;
-        font-size: 1.2em;
-        margin-bottom: 15px;
-        text-align: center;
-    }
-    .stats-subtitle {
-        color: #333;
-        font-size: 1.1em;
-        margin: 12px 0;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 5px;
-    }
-    .stats-highlight {
-        background-color: #f8f9fa;
-        padding: 10px;
-        border-radius: 5px;
-        margin: 8px 0;
-    }
-    .credits {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        padding: 12px;
-        border-radius: 8px;
-        margin-top: 25px;
-        text-align: center;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        border: 1px solid #eee;
-        font-size: 0.85em;
-    }
-    .credits h2 {
-        color: #0066cc;
-        font-size: 1.1em;
-        margin-bottom: 12px;
-        font-weight: bold;
-    }
-    .credits-info {
-        color: #666;
-        font-size: 0.9em;
-        line-height: 1.5;
-        margin: 6px 0;
-    }
-    .credits-divider {
-        height: 1px;
-        background: linear-gradient(to right, transparent, #0066cc, transparent);
-        margin: 8px auto;
-        width: 35%;
-        opacity: 0.4;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# Contenedor para logo y Ruleta
-st.markdown("<div class='logo-ruleta-wrapper'>", unsafe_allow_html=True)
-
-# Cargar logo
-st.markdown('<div class="upload-container upload-logo">', unsafe_allow_html=True)
-logo_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'], key="logo")
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Mostrar logo si está cargado
-if logo_file:
-    st.image(logo_file, width=300)
-
-# Ruleta file upload
-st.markdown('<div class="upload-container ruleta-upload">', unsafe_allow_html=True)
-ruleta_names_file = st.file_uploader("", type=['txt'], key="ruleta_names")
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Load ruleta names if file is uploaded
-nombres_ruleta = []
-if ruleta_names_file:
-    nombres_ruleta = cargar_nombres_ruleta(ruleta_names_file)
-    st.success(f"Se cargaron {len(nombres_ruleta)} nombres para la Ruleta")
-
-# Render Ruleta component
-components.html(f"""
-    <div id="ruleta-container"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
-    <script type="text/babel">
-    const RuletaPreviewFinal = () => {{
-      const [rotation, setRotation] = React.useState(0);
-      const [nombres, setNombres] = React.useState({json.dumps(nombres_ruleta)});
-      const [textAreaValue, setTextAreaValue] = React.useState(nombres.join('\\n'));
-      const [ganador, setGanador] = React.useState('');
-      const [isSpinning, setIsSpinning] = React.useState(false);
-      const [indicadorAngulo, setIndicadorAngulo] = React.useState(null);
-      
-      const colors = ['#FF9999', '#99FF99', '#9999FF', '#FFFF99', '#FF99FF'];
-      const anglePerSection = 360 / Math.max(1, nombres.length);
-      
-      const handleSpin = () => {{
-        if (isSpinning || nombres.length === 0) return;
-        
-        setIsSpinning(true);
-        setGanador('');
-        setIndicadorAngulo(null);
-        const newRotation = rotation + 1440 + Math.random() * 360;
-        setRotation(newRotation);
-        
-        setTimeout(() => {{
-          const finalAngle = newRotation % 360;
-          const winnerIndex = Math.floor(finalAngle / anglePerSection);
-          setGanador(nombres[winnerIndex % nombres.length]);
-          setIndicadorAngulo(finalAngle + (anglePerSection / 2));
-          setIsSpinning(false);
-        }}, 4000);
-      }};
-
-      const handleTextChange = (e) => {{
-        setTextAreaValue(e.target.value);
-      }};
-
-      const handleLoadNames = () => {{
-        const newNames = textAreaValue
-          .split('\\n')
-          .map(name => name.trim())
-          .filter(name => name.length > 0);
-        if (newNames.length > 0) {{
-          setNombres(newNames);
-          setGanador('');
-          setIndicadorAngulo(null);
-        }}
-      }};
-
-      const renderWinnerArrow = () => {{
-        if (!indicadorAngulo || isSpinning || nombres.length === 0) return null;
-
-        const arrowLength = 20;
-        const arrowWidth = 10;
-        const centerX = 50;
-        const centerY = 50;
-        const radius = 45;
-        
-        const angle = (indicadorAngulo - 90) * (Math.PI / 180);
-        const tipX = centerX + (radius + 5) * Math.cos(angle);
-        const tipY = centerY + (radius + 5) * Math.sin(angle);
-        
-        const baseAngle = angle + Math.PI;
-        const baseX = tipX + arrowLength * Math.cos(baseAngle);
-        const baseY = tipY + arrowLength * Math.sin(baseAngle);
-        
-        const leftX = tipX + arrowWidth * Math.cos(baseAngle + Math.PI/2);
-        const leftY = tipY + arrowWidth * Math.sin(baseAngle + Math.PI/2);
-        const rightX = tipX + arrowWidth * Math.cos(baseAngle - Math.PI/2);
-        const rightY = tipY + arrowWidth * Math.sin(baseAngle - Math.PI/2);
-
-        return React.createElement('polygon', {{
-          points: `${{tipX}},${{tipY}} ${{leftX}},${{leftY}} ${{baseX}},${{baseY}} ${{rightX}},${{rightY}}`,
-          fill: 'gold',
-          stroke: 'darkgold',
-          strokeWidth: '0.5'
-        }});
-      }};
-
-      return React.createElement('div', {{ className: 'flex flex-col items-center w-full' }},
-        React.createElement('div', {{ className: 'relative w-[500px] h-[500px]' }},
-          nombres.length === 0 ? (
-            React.createElement('div', {{ className: 'w-full h-full bg-gray-200 flex items-center justify-center text-gray-500' }}, 'No hay nombres')
-          ) : (
-            React.createElement('svg', {{
-              className: 'w-full h-full',
-              viewBox: '0 0 100 100',
-              style: {{
-                transform: `rotate(${{rotation}}deg)`,
-                transition: 'transform 4s cubic-bezier(0.2, 0.8, 0.2, 1)'
-              }}
-            }},
-              nombres.map((nombre, index) => {{
-                const startAngle = index * anglePerSection;
-                const endAngle = (index + 1) * anglePerSection;
-                
-                const startRad = (startAngle - 90) * Math.PI / 180;
-                const endRad = (endAngle - 90) * Math.PI / 180;
-                
-                const startX = 50 + 45 * Math.cos(startRad);
-                const startY = 50 + 45 * Math.sin(startRad);
-                const endX = 50 + 45 * Math.cos(endRad);
-                const endY = 50 +
-                45 * Math.sin(endRad);
-                
-                const largeArcFlag = anglePerSection <= 180 ? 0 : 1;
-                
-                const pathData = `
-                  M 50 50
-                  L ${{startX}} ${{startY}}
-                  A 45 45 0 ${{largeArcFlag}} 1 ${{endX}} ${{endY}}
-                  Z
-                `;
-                
-                const textAngle = (startAngle + endAngle) / 2;
-                const textRad = (textAngle - 90) * Math.PI / 180;
-                const textX = 50 + 30 * Math.cos(textRad);
-                const textY = 50 + 30 * Math.sin(textRad);
-                
-                return React.createElement('g', {{ key: index }},
-                  React.createElement('path', {{
-                    d: pathData,
-                    fill: colors[index % colors.length],
-                    stroke: 'white', 
-                    strokeWidth: '0.5'
-                  }}),
-                  React.createElement('text', {{
-                    x: textX,
-                    y: textY,
-                    fontSize: '6',
-                    fill: 'black',
-                    textAnchor: 'middle',
-                    transform: `rotate(${{textAngle}}, ${{textX}}, ${{textY}})`
-                  }}, nombre)
-                );
-              }})
-            )
-          )
-        ),
-        React.createElement('div', {{ className: 'absolute right-0 top-1/2 -mt-2 w-0 h-0 border-t-8 border-t-transparent border-l-[16px] border-l-red-600 border-b-8 border-b-transparent' }})
-      ),
-      React.createElement('div', {{ className: 'mt-4 w-[500px]' }},
-        React.createElement('textarea', {{
-          className: 'w-full p-2 border rounded mb-2 h-24',
-          value: textAreaValue,
-          onChange: handleTextChange,
-          placeholder: 'Ingrese nombres aquí, uno por línea'
-        }}),
-        React.createElement('div', {{ className: 'flex space-x-2' }},
-          React.createElement('button', {{
-            onClick: handleLoadNames,
-            className: 'flex-grow bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600'
-          }}, 'Cargar Nombres'),
-          React.createElement('button', {{
-            onClick: handleSpin,
-            disabled: isSpinning || nombres.length === 0,
-            className: `flex-grow px-4 py-2 rounded text-white transition-colors ${{
-              isSpinning || nombres.length === 0 ? 'bg-gray-400' : 'bg-green-500 hover:bg-green-600'
-            }}`
-          }}, isSpinning ? 'Girando...' : 'Girar Ruleta')
-        ),
-        ganador && React.createElement('div', {{ className: 'mt-4 text-center' }},
-          React.createElement('h3', {{ className: 'text-xl font-bold' }}, '¡GANADOR!'),
-          React.createElement('p', {{ className: 'text-2xl font-bold text-blue-600' }}, ganador)
-        )
-      )
-    }};
-
-    ReactDOM.render(
-      React.createElement(RuletaPreviewFinal),
-      document.getElementById('ruleta-container')
-    );
-    </script>
-""", height=600)
-
-st.markdown("</div>", unsafe_allow_html=True)
 
 # Cargar estado al inicio
 if 'state_loaded' not in st.session_state:
@@ -684,8 +405,9 @@ if 'pregunta_actual' not in st.session_state:
     st.session_state.pregunta_actual = 0
 if 'num_preguntas' not in st.session_state:
     st.session_state.num_preguntas = 5
+    # Parte 4: Configuración de Estudiantes
 
-# Configuración inicial
+# Configuración inicial de estudiantes
 col1, col2, _ = st.columns([2, 1, 1])
 with col1:
     nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
@@ -728,6 +450,7 @@ if students_file:
         st.success(f"Se cargaron {len(contenido)} estudiantes")
     except Exception as e:
         st.error(f"Error al cargar estudiantes: {str(e)}")
+        # Parte 5: Manejo de Preguntas
 
 # Mostrar preguntas
 if st.session_state.preguntas:
@@ -747,6 +470,18 @@ if st.session_state.preguntas:
             save_state()
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
+
+# Cargar preguntas desde archivo
+st.markdown('<div class="upload-container upload-questions">', unsafe_allow_html=True)
+questions_file = st.file_uploader("", type=['txt'], key="questions")
+st.markdown('</div>', unsafe_allow_html=True)
+
+if questions_file:
+    contenido = StringIO(questions_file.getvalue().decode("utf-8")).read().splitlines()
+    st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
+    save_state()
+    st.success(f"Se cargaron {len(st.session_state.preguntas)} preguntas")
+    # Parte 6: Visualización de Estudiantes
 
 # Mostrar estudiantes
 for idx, estudiante in st.session_state.estudiantes.iterrows():
@@ -789,17 +524,7 @@ for idx, estudiante in st.session_state.estudiantes.iterrows():
             <div class="separator-line"></div>
         </div>
     """, unsafe_allow_html=True)
-
-# Cargar preguntas
-st.markdown('<div class="upload-container upload-questions">', unsafe_allow_html=True)
-questions_file = st.file_uploader("", type=['txt'], key="questions")
-st.markdown('</div>', unsafe_allow_html=True)
-
-if questions_file:
-    contenido = StringIO(questions_file.getvalue().decode("utf-8")).read().splitlines()
-    st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
-    save_state()
-    st.success(f"Se cargaron {len(st.session_state.preguntas)} preguntas")
+    # Parte 7: Estadísticas de Participación
 
 # Estadísticas
 if not st.session_state.estudiantes.empty:
@@ -865,8 +590,7 @@ if not st.session_state.estudiantes.empty:
             nota = round(nota, 1)
             
             # Determinar color según la nota
-            if nota
-          >= 14:
+            if nota >= 14:
                 color = '#28a745'  # Verde (Aprobado)
                 estado = "✓ APROBADO"
             elif nota >= 11:
@@ -898,8 +622,9 @@ if not st.session_state.estudiantes.empty:
         st.markdown("</div>", unsafe_allow_html=True)
         
         st.markdown("</div>", unsafe_allow_html=True)
+        # Parte 8: Créditos
 
-# Créditos
+# Sección de créditos
 st.markdown("""
     <div class="credits">
         <h2>Créditos</h2>
