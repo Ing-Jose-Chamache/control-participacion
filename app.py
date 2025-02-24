@@ -9,36 +9,71 @@ import json
 import os
 import uuid  # Importamos uuid para generar IDs únicos de sesión
 
-# Configuración de la página - MOVIDA AL INICIO para evitar el error
+# Configuración de la página - DEBE SER LO PRIMERO
 st.set_page_config(page_title="Control de Participación", layout="wide")
+
+# Crear directorio para las sesiones en caso de que no exista
+if not os.path.exists('sesiones'):
+    try:
+        os.makedirs('sesiones')
+    except Exception as e:
+        pass  # Ignorar errores silenciosamente
 
 # Modificación: Inicialización del ID de sesión
 if 'session_id' not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())
+    # Intentar leer el ID de sesión de un archivo de cookies persistente
+    try:
+        cookie_file = '.streamlit/cookie_store.json'
+        if os.path.exists(cookie_file):
+            with open(cookie_file, 'r') as f:
+                cookies = json.load(f)
+                if 'session_id' in cookies:
+                    st.session_state.session_id = cookies['session_id']
+                else:
+                    st.session_state.session_id = str(uuid.uuid4())
+        else:
+            st.session_state.session_id = str(uuid.uuid4())
+            
+        # Guardar ID de sesión
+        os.makedirs('.streamlit', exist_ok=True)
+        with open(cookie_file, 'w') as f:
+            json.dump({'session_id': st.session_state.session_id}, f)
+    except:
+        # Si algo falla, generamos un nuevo ID
+        st.session_state.session_id = str(uuid.uuid4())
     
-# Modificación: Mostrar ID de sesión en la barra lateral (opcional)
-st.sidebar.markdown(f"ID de sesión: **{st.session_state.session_id[:8]}...**")
-st.sidebar.caption("Tus datos son independientes de otros usuarios")
+# Mostrar ID de sesión estéticamente en la barra lateral
+st.sidebar.markdown(f"""
+    <div style='
+        background-color: #f0f8ff;
+        padding: 10px 15px;
+        border-radius: 8px;
+        border-left: 4px solid #0066cc;
+        margin-bottom: 15px;
+        font-size: 0.9em;
+        font-family: monospace;
+        display: inline-block;
+    '>
+        <span style='color: #555;'>ID:</span> <span style='color: #0066cc; font-weight: bold;'>{st.session_state.session_id[:8]}...</span>
+    </div>
+""", unsafe_allow_html=True)
 
 # Funciones de persistencia
 def save_state():
-    # Modificación: Usar el ID de sesión en el nombre del archivo
+    # Usar el ID de sesión en el nombre del archivo
     state_data = {
         'estudiantes': st.session_state.estudiantes.to_dict(),
         'preguntas': st.session_state.preguntas,
         'pregunta_actual': st.session_state.pregunta_actual,
         'num_preguntas': st.session_state.num_preguntas
     }
-    # Crear directorio para las sesiones si no existe
-    if not os.path.exists('sesiones'):
-        os.makedirs('sesiones')
     # Guardar en un archivo específico para esta sesión
     with open(f'sesiones/app_state_{st.session_state.session_id}.json', 'w') as f:
         json.dump(state_data, f)
 
 def load_state():
     try:
-        # Modificación: Cargar desde el archivo específico de esta sesión
+        # Cargar desde el archivo específico de esta sesión
         session_file = f'sesiones/app_state_{st.session_state.session_id}.json'
         if os.path.exists(session_file):
             with open(session_file, 'r') as f:
@@ -48,11 +83,14 @@ def load_state():
             st.session_state.preguntas = state_data['preguntas']
             st.session_state.pregunta_actual = state_data['pregunta_actual']
             st.session_state.num_preguntas = state_data['num_preguntas']
+            return True
+        return False
     except Exception as e:
         print(f"Error loading state: {e}")
+        return False
 
 def reset_state():
-    # Modificación: Eliminar solo el archivo de la sesión actual
+    # Eliminar solo el archivo de la sesión actual
     session_file = f'sesiones/app_state_{st.session_state.session_id}.json'
     if os.path.exists(session_file):
         os.remove(session_file)
@@ -242,32 +280,26 @@ st.markdown("""
         top: 50%;
         transform: translateY(-50%);
     }
-    /* Estilo para la sesión */
-    .session-info {
-        background-color: #f0f8ff;
-        padding: 8px 12px;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        border-left: 4px solid #0066cc;
-        font-size: 0.85em;
-    }
     </style>
 """, unsafe_allow_html=True)
 
+# Inicialización del estado antes de cargar
+if 'estudiantes' not in st.session_state:
+    st.session_state.estudiantes = pd.DataFrame(columns=['Nombre', 'Respuestas', 'Respuestas_Correctas'])
+if 'preguntas' not in st.session_state:
+    st.session_state.preguntas = []
+if 'pregunta_actual' not in st.session_state:
+    st.session_state.pregunta_actual = 0
+if 'num_preguntas' not in st.session_state:
+    st.session_state.num_preguntas = 5
+
 # Cargar estado al inicio
 if 'state_loaded' not in st.session_state:
-    # Inicialización del estado - MOVIDO AQUÍ para evitar errores
-    if 'estudiantes' not in st.session_state:
-        st.session_state.estudiantes = pd.DataFrame(columns=['Nombre', 'Respuestas', 'Respuestas_Correctas'])
-    if 'preguntas' not in st.session_state:
-        st.session_state.preguntas = []
-    if 'pregunta_actual' not in st.session_state:
-        st.session_state.pregunta_actual = 0
-    if 'num_preguntas' not in st.session_state:
-        st.session_state.num_preguntas = 5
-        
-    load_state()
+    loaded = load_state()
     st.session_state.state_loaded = True
+    if loaded:
+        # Si se cargaron datos, no hacemos nada más
+        pass
 
 # Botón de reinicio
 st.markdown('<div class="reset-button">', unsafe_allow_html=True)
@@ -311,7 +343,7 @@ col1, col2, _ = st.columns([2, 1, 1])
 with col1:
     nuevo_estudiante = st.text_input("NOMBRE DEL ESTUDIANTE")
 with col2:
-    num_preguntas = st.text_input("NÚMERO DE PREGUNTAS", value="5", key="num_preguntas_input")
+    num_preguntas = st.text_input("NÚMERO DE PREGUNTAS", value=str(st.session_state.num_preguntas), key="num_preguntas_input")
     try:
         st.session_state.num_preguntas = int(num_preguntas)
         save_state()
@@ -534,27 +566,10 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Modificación: Agregar información de sesión al final
-st.markdown("""
-    <div class="session-info">
-        <strong>Información de la sesión:</strong> Cada usuario que accede a esta aplicación tiene una sesión independiente.
-        Los datos de los estudiantes y preguntas se guardan separados por sesión.
-        <br>
-        <small>Si compartes el enlace con otros usuarios, cada uno tendrá acceso a su propia información sin afectar a los demás.</small>
-    </div>
-""", unsafe_allow_html=True)
-
-# Crear directorio para las sesiones en caso de que no exista
-if not os.path.exists('sesiones'):
-    try:
-        os.makedirs('sesiones')
-    except Exception as e:
-        st.warning(f"No se pudo crear el directorio de sesiones. Error: {e}")
-        
-# Modificación: Crear un .gitignore para evitar subir datos de sesiones
+# Crear un .gitignore para evitar subir datos de sesiones
 if not os.path.exists('.gitignore'):
     try:
         with open('.gitignore', 'w') as f:
-            f.write("sesiones/\n")
-    except Exception as e:
+            f.write("sesiones/\n.streamlit/\n")
+    except:
         pass  # Ignorar errores al crear el .gitignore
