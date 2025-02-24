@@ -9,6 +9,9 @@ import json
 import os
 import uuid  # Importamos uuid para generar IDs únicos de sesión
 
+# Configuración de la página - MOVIDA AL INICIO para evitar el error
+st.set_page_config(page_title="Control de Participación", layout="wide")
+
 # Modificación: Inicialización del ID de sesión
 if 'session_id' not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
@@ -57,9 +60,6 @@ def reset_state():
     st.session_state.preguntas = []
     st.session_state.pregunta_actual = 0
     st.session_state.num_preguntas = 5
-
-# Configuración de la página
-st.set_page_config(page_title="Control de Participación", layout="wide")
 
 # Estilo personalizado
 st.markdown("""
@@ -256,6 +256,16 @@ st.markdown("""
 
 # Cargar estado al inicio
 if 'state_loaded' not in st.session_state:
+    # Inicialización del estado - MOVIDO AQUÍ para evitar errores
+    if 'estudiantes' not in st.session_state:
+        st.session_state.estudiantes = pd.DataFrame(columns=['Nombre', 'Respuestas', 'Respuestas_Correctas'])
+    if 'preguntas' not in st.session_state:
+        st.session_state.preguntas = []
+    if 'pregunta_actual' not in st.session_state:
+        st.session_state.pregunta_actual = 0
+    if 'num_preguntas' not in st.session_state:
+        st.session_state.num_preguntas = 5
+        
     load_state()
     st.session_state.state_loaded = True
 
@@ -265,16 +275,6 @@ if st.button("🗑️ Reiniciar Todo"):
     reset_state()
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
-
-# Inicialización del estado
-if 'estudiantes' not in st.session_state:
-    st.session_state.estudiantes = pd.DataFrame(columns=['Nombre', 'Respuestas', 'Respuestas_Correctas'])
-if 'preguntas' not in st.session_state:
-    st.session_state.preguntas = []
-if 'pregunta_actual' not in st.session_state:
-    st.session_state.pregunta_actual = 0
-if 'num_preguntas' not in st.session_state:
-    st.session_state.num_preguntas = 5
 
 # Header con Logo y Ruleta
 st.markdown('<div class="header-section">', unsafe_allow_html=True)
@@ -544,7 +544,17 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# Crear directorio para las sesiones en caso de que no exista
+if not os.path.exists('sesiones'):
+    try:
+        os.makedirs('sesiones')
+    except Exception as e:
+        st.warning(f"No se pudo crear el directorio de sesiones. Error: {e}")
+        
 # Modificación: Crear un .gitignore para evitar subir datos de sesiones
 if not os.path.exists('.gitignore'):
-    with open('.gitignore', 'w') as f:
-        f.write("sesiones/\n")
+    try:
+        with open('.gitignore', 'w') as f:
+            f.write("sesiones/\n")
+    except Exception as e:
+        pass  # Ignorar errores al crear el .gitignore
