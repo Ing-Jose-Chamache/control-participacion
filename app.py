@@ -656,7 +656,7 @@ if not st.session_state.estudiantes.empty:
         mejor_estudiante = df_stats.loc[df_stats['Porcentaje'].idxmax()]
         st.markdown("<div class='stats-highlight'>", unsafe_allow_html=True)
         st.markdown(f"🏆 **Mejor estudiante**: **{mejor_estudiante['Nombre']}** ({mejor_estudiante['Porcentaje']:.1f}%)")
-        st.markdown("</div>", unsafe
+        st.markdown("<div class='stats-subtitle'>Niveles de Rendimiento:</div>", unsafe_allow_html=True)
       st.markdown("</div>", unsafe_allow_html=True)
         
         # Clasificación por niveles
