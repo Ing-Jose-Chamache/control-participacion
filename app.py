@@ -8,8 +8,6 @@ from io import StringIO
 import json
 import os
 import uuid  # Importamos uuid para generar IDs únicos de sesión
-import io
-import xlsxwriter  # Para exportar a Excel
 
 # Configuración de la página - DEBE SER LO PRIMERO
 st.set_page_config(page_title="Control de Participación", layout="wide")
@@ -59,160 +57,8 @@ st.sidebar.markdown(f"""
         <span style='color: #555;'>ID:</span> <span style='color: #0066cc; font-weight: bold;'>{st.session_state.session_id[:8]}...</span>
     </div>
 """, unsafe_allow_html=True)
-# Función para exportar a Excel
-def exportar_a_excel():
-    if st.session_state.estudiantes.empty:
-        st.warning("No hay datos para exportar")
-        return
-    
-    # Crear un archivo Excel en memoria
-    output = io.BytesIO()
-    workbook = xlsxwriter.Workbook(output)
-    
-    # Crear formatos
-    titulo_formato = workbook.add_format({
-        'bold': True,
-        'font_size': 14,
-        'align': 'center',
-        'valign': 'vcenter',
-        'bg_color': '#4472C4',
-        'font_color': 'white'
-    })
-    
-    cabecera_formato = workbook.add_format({
-        'bold': True,
-        'bg_color': '#D9E1F2',
-        'border': 1,
-        'align': 'center',
-        'valign': 'vcenter'
-    })
-    
-    celda_formato = workbook.add_format({
-        'border': 1,
-        'align': 'left',
-        'valign': 'vcenter'
-    })
-    
-    numero_formato = workbook.add_format({
-        'border': 1,
-        'align': 'center',
-        'valign': 'vcenter',
-        'num_format': '0.0'
-    })
-    
-    aprobado_formato = workbook.add_format({
-        'border': 1,
-        'align': 'center',
-        'valign': 'vcenter',
-        'bg_color': '#C6EFCE',
-        'font_color': '#006100'
-    })
-    
-    regular_formato = workbook.add_format({
-        'border': 1,
-        'align': 'center',
-        'valign': 'vcenter',
-        'bg_color': '#FFEB9C',
-        'font_color': '#9C5700'
-    })
-    
-    desaprobado_formato = workbook.add_format({
-        'border': 1,
-        'align': 'center',
-        'valign': 'vcenter',
-        'bg_color': '#FFC7CE',
-        'font_color': '#9C0006'
-    })
-    
-    # Hoja de resumen
-    worksheet = workbook.add_worksheet('Resumen')
-    
-    # Título
-    worksheet.merge_range('A1:G1', 'CONTROL DE PARTICIPACIÓN - REPORTE DE RENDIMIENTO', titulo_formato)
-    worksheet.write('A2', f'Fecha: {datetime.now().strftime("%d/%m/%Y")}')
-    worksheet.write('F2', f'ID Sesión: {st.session_state.session_id[:8]}...')
-    
-    # Preparar datos para estadísticas
-    df_stats = pd.DataFrame({
-        'Nombre': st.session_state.estudiantes['Nombre'],
-        'Respuestas_Correctas': st.session_state.estudiantes['Respuestas'].apply(lambda x: sum(1 for r in x if r == '1')),
-        'Porcentaje': st.session_state.estudiantes['Respuestas'].apply(lambda x: sum(1 for r in x if r == '1') / st.session_state.num_preguntas * 100)
-    })
-    
-    # Resumen general
-    worksheet.merge_range('A4:G4', 'RESUMEN GENERAL', cabecera_formato)
-    worksheet.write('A5', 'Total de estudiantes:')
-    worksheet.write('B5', len(st.session_state.estudiantes))
-    
-    # Promedio
-    promedio = df_stats['Respuestas_Correctas'].mean() * 20 / st.session_state.num_preguntas
-    worksheet.write('A6', 'Promedio de notas:')
-    worksheet.write('B6', promedio, numero_formato)
-    
-    # Niveles
-    worksheet.merge_range('A8:G8', 'DISTRIBUCIÓN POR NIVELES', cabecera_formato)
-    
-    niveles = {
-        'Excelente (90-100%)': df_stats[df_stats['Porcentaje'] >= 90]['Nombre'].tolist(),
-        'Bueno (70-89%)': df_stats[(df_stats['Porcentaje'] >= 70) & (df_stats['Porcentaje'] < 90)]['Nombre'].tolist(),
-        'Regular (60-69%)': df_stats[(df_stats['Porcentaje'] >= 60) & (df_stats['Porcentaje'] < 70)]['Nombre'].tolist(),
-        'En riesgo (<60%)': df_stats[df_stats['Porcentaje'] < 60]['Nombre'].tolist()
-    }
-    
-    row = 9
-    for nivel, estudiantes in niveles.items():
-        worksheet.write(f'A{row}', nivel)
-        worksheet.write(f'B{row}', len(estudiantes))
-        worksheet.write(f'C{row}', ', '.join(estudiantes) if estudiantes else "Ninguno")
-        row += 1
-    
-    # Tabla de estudiantes
-    row = 15
-    worksheet.merge_range(f'A{row}:G{row}', 'DETALLE POR ESTUDIANTE', cabecera_formato)
-    row += 1
-    
-    # Cabecera de tabla
-    worksheet.write(f'A{row}', 'Nombre', cabecera_formato)
-    worksheet.write(f'B{row}', 'Correctas', cabecera_formato)
-    worksheet.write(f'C{row}', 'Total', cabecera_formato)
-    worksheet.write(f'D{row}', 'Porcentaje', cabecera_formato)
-    worksheet.write(f'E{row}', 'Nota (0-20)', cabecera_formato)
-    worksheet.write(f'F{row}', 'Estado', cabecera_formato)
-    row += 1
-    
-    # Datos de estudiantes
-    for _, estudiante in df_stats.iterrows():
-        correctas = estudiante['Respuestas_Correctas']
-        porcentaje = estudiante['Porcentaje']
-        nota = (correctas / st.session_state.num_preguntas) * 20
-        
-        worksheet.write(f'A{row}', estudiante['Nombre'], celda_formato)
-        worksheet.write(f'B{row}', correctas, celda_formato)
-        worksheet.write(f'C{row}', st.session_state.num_preguntas, celda_formato)
-        worksheet.write(f'D{row}', porcentaje, numero_formato)
-        worksheet.write(f'E{row}', nota, numero_formato)
-        
-        # Estado con formato condicional
-        if nota >= 14:
-            worksheet.write(f'F{row}', "APROBADO", aprobado_formato)
-        elif nota >= 11:
-            worksheet.write(f'F{row}', "REGULAR", regular_formato)
-        else:
-            worksheet.write(f'F{row}', "DESAPROBADO", desaprobado_formato)
-        
-        row += 1
-    
-    # Ajustar anchos de columna
-    worksheet.set_column('A:A', 25)
-    worksheet.set_column('B:F', 12)
-    
-    # Cerrar el libro
-    workbook.close()
-    
-    # Obtener el valor binario del archivo
-    excel_data = output.getvalue()
-    return excel_data
-    # Funciones de persistencia
+
+# Funciones de persistencia
 def save_state():
     # Usar el ID de sesión en el nombre del archivo
     state_data = {
@@ -252,7 +98,8 @@ def reset_state():
     st.session_state.preguntas = []
     st.session_state.pregunta_actual = 0
     st.session_state.num_preguntas = 5
-    # Estilo personalizado
+
+# Estilo personalizado
 st.markdown("""
     <style>
     .main {
@@ -433,30 +280,9 @@ st.markdown("""
         top: 50%;
         transform: translateY(-50%);
     }
-    /* Estilo para el botón de exportar */
-    .export-button {
-        background-color: #0066cc;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 36px;
-        height: 36px;
-        font-size: 16px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        margin-left: 10px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        transition: all 0.3s ease;
-    }
-    .export-button:hover {
-        background-color: #004c99;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        transform: translateY(-2px);
-    }
     </style>
 """, unsafe_allow_html=True)
+
 # Inicialización del estado antes de cargar
 if 'estudiantes' not in st.session_state:
     st.session_state.estudiantes = pd.DataFrame(columns=['Nombre', 'Respuestas', 'Respuestas_Correctas'])
@@ -511,6 +337,7 @@ st.markdown(
 )
 
 st.markdown('</div>', unsafe_allow_html=True)
+
 # Configuración inicial
 col1, col2, _ = st.columns([2, 1, 1])
 with col1:
@@ -573,7 +400,8 @@ if st.session_state.preguntas:
             save_state()
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
-    # Mostrar estudiantes
+
+# Mostrar estudiantes
 for idx, estudiante in st.session_state.estudiantes.iterrows():
     st.markdown("<div class='student-row'>", unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([2, 6, 1, 1])
@@ -625,7 +453,8 @@ if questions_file:
     st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
     save_state()
     st.success(f"Se cargaron {len(st.session_state.preguntas)} preguntas")
-    # Estadísticas
+
+# Estadísticas
 if not st.session_state.estudiantes.empty:
     st.markdown("### Estadísticas de Participación")
     
@@ -675,7 +504,8 @@ if not st.session_state.estudiantes.empty:
                 st.write(f"_{', '.join(estudiantes)}_")
         
         st.markdown("</div>", unsafe_allow_html=True)
-        with col4:
+
+    with col4:
         st.markdown("<div class='performance-stats'>", unsafe_allow_html=True)
         st.markdown("<div class='stats-title'>Notas Vigesimales (0-20)</div>", unsafe_allow_html=True)
         
@@ -713,56 +543,10 @@ if not st.session_state.estudiantes.empty:
                 </div>
             """, unsafe_allow_html=True)
         
-        # Mostrar promedio del aula con botón de exportar
+        # Mostrar promedio del aula
         promedio = df_stats['Respuestas_Correctas'].mean() * 20 / st.session_state.num_preguntas
-        
-        # Estado para controlar si ya se mostró el botón de descarga
-        if 'excel_generated' not in st.session_state:
-            st.session_state.excel_generated = False
-            
-        # Contenedor para el promedio y botón de exportar
-        st.markdown("<div class='stats-highlight' style='margin-top:15px; display:flex; align-items:center; justify-content:space-between;'>", unsafe_allow_html=True)
-        
-        # Promedio
-        st.markdown(f"<div>📊 <strong>Promedio del aula</strong>: {promedio:.1f}</div>", unsafe_allow_html=True)
-        
-        # Botón de exportar
-        export_button_id = f"export_button_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        st.markdown(f"""
-            <div>
-                <button 
-                    id="{export_button_id}" 
-                    class="export-button" 
-                    title="Exportar a Excel"
-                    onclick="document.getElementById('{export_button_id}_trigger').click();">
-                    <span>📊</span>
-                </button>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # Botón oculto que será activado por el botón personalizado
-        if st.button("📊", key=f"{export_button_id}_trigger", help="Exportar a Excel", type="primary"):
-            excel_bytes = exportar_a_excel()
-            if excel_bytes:
-                # Generar nombre de archivo con fecha y hora
-                current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
-                file_name = f"Reporte_Participacion_{current_date}.xlsx"
-                
-                st.session_state.excel_data = excel_bytes
-                st.session_state.excel_filename = file_name
-                st.session_state.excel_generated = True
-                st.rerun()
-        
-        # Mostrar el botón de descarga si se generó el Excel
-        if st.session_state.excel_generated:
-            st.download_button(
-                label="📥 Descargar Excel",
-                data=st.session_state.excel_data,
-                file_name=st.session_state.excel_filename,
-                mime="application/vnd.ms-excel",
-                key="download_excel"
-            )
-            
+        st.markdown("<div class='stats-highlight' style='margin-top:15px'>", unsafe_allow_html=True)
+        st.markdown(f"📊 **Promedio del aula**: {promedio:.1f}")
         st.markdown("</div>", unsafe_allow_html=True)
         
         st.markdown("</div>", unsafe_allow_html=True)
