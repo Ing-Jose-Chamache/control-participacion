@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 from datetime import datetime
-import base64
 from io import StringIO, BytesIO
 import json
 import os
@@ -127,47 +126,19 @@ def export_excel():
     
     # Crear un Excel en memoria
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+    
+    # Método simplificado para crear Excel sin formato avanzado
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
         # Hoja 1: Resumen de notas
         df_stats[['Nombre', 'Respuestas_Correctas', 'Total_Preguntas', 'Porcentaje', 'Nota_Vigesimal', 'Estado']].to_excel(
             writer, sheet_name='Resumen', index=False
         )
-        
-        # Formatear la hoja de resumen
-        workbook = writer.book
-        worksheet = writer.sheets['Resumen']
-        
-        # Formato para celdas
-        header_format = workbook.add_format({
-            'bold': True,
-            'text_wrap': True,
-            'valign': 'top',
-            'fg_color': '#D9EAD3',
-            'border': 1
-        })
-        
-        # Aplicar formato a la cabecera
-        for col_num, value in enumerate(df_stats[['Nombre', 'Respuestas_Correctas', 'Total_Preguntas', 'Porcentaje', 'Nota_Vigesimal', 'Estado']].columns.values):
-            worksheet.write(0, col_num, value, header_format)
-            
-        # Autoajustar columnas
-        worksheet.autofit()
         
         # Hoja 2: Detalle de respuestas por pregunta
         respuestas_columns = ['Nombre'] + [f'Pregunta_{i+1}' for i in range(st.session_state.num_preguntas)]
         df_stats[respuestas_columns].to_excel(
             writer, sheet_name='Detalle_Respuestas', index=False
         )
-        
-        # Formatear la hoja de detalle
-        worksheet_detalle = writer.sheets['Detalle_Respuestas']
-        
-        # Aplicar formato a la cabecera
-        for col_num, value in enumerate(df_stats[respuestas_columns].columns.values):
-            worksheet_detalle.write(0, col_num, value, header_format)
-            
-        # Autoajustar columnas
-        worksheet_detalle.autofit()
         
         # Hoja 3: Estadísticas generales
         # Crear un DataFrame con estadísticas generales
@@ -197,31 +168,12 @@ def export_excel():
         pd.DataFrame(stats_generales).to_excel(
             writer, sheet_name='Estadísticas_Generales', index=False
         )
-        
-        # Formatear la hoja de estadísticas generales
-        worksheet_stats = writer.sheets['Estadísticas_Generales']
-        
-        # Aplicar formato a la cabecera
-        for col_num, value in enumerate(['Estadística', 'Valor']):
-            worksheet_stats.write(0, col_num, value, header_format)
-            
-        # Autoajustar columnas
-        worksheet_stats.autofit()
     
     # Devolver los bytes del Excel
+    output.seek(0)
     return output.getvalue()
 
-# Función para crear un enlace de descarga
-def get_excel_download_link(excel_data, filename="estadisticas_participacion.xlsx"):
-    """Genera un enlace de descarga para el archivo Excel"""
-    if excel_data is None:
-        return None
-        
-    b64 = base64.b64encode(excel_data).decode()
-    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="{filename}" style="text-decoration:none;">' \
-           f'<img src="https://github.com/Ing-Jose-Chamache/imagenesjch/blob/main/excel-icon.png?raw=true" width="32" height="32" style="vertical-align:middle; margin-right:5px;" />' \
-           f'<span style="vertical-align:middle; color:#1e7e34; font-weight:bold;">Exportar Excel</span></a>'
-    return href
+# Esta función ya no se utiliza, usamos st.download_button en su lugar
 
 # Estilo personalizado
 st.markdown("""
@@ -597,16 +549,24 @@ if questions_file:
 # Estadísticas
 if not st.session_state.estudiantes.empty:
     # Encabezado de estadísticas con botón para exportar
-    st.markdown("""
-        <div class="stats-header">
-            <h3 style="display: inline-block; margin: 0;">Estadísticas de Participación</h3>
-            <div class="export-excel-button">
-                {excel_button}
-            </div>
-        </div>
-    """.format(
-        excel_button=get_excel_download_link(export_excel()) or ""
-    ), unsafe_allow_html=True)
+    col_stats_header, col_export_button = st.columns([5, 1])
+    
+    with col_stats_header:
+        st.markdown("### Estadísticas de Participación")
+    
+    with col_export_button:
+        if st.session_state.estudiantes.empty:
+            st.write("")
+        else:
+            excel_data = export_excel()
+            if excel_data is not None:
+                st.download_button(
+                    label="Exportar Excel",
+                    data=excel_data,
+                    file_name="estadisticas_participacion.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    help="Descargar todas las estadísticas en formato Excel"
+                )
     
     # Preparar datos para estadísticas
     df_stats = pd.DataFrame({
