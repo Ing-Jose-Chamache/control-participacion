@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 from datetime import datetime
-from io import StringIO, BytesIO
+from io import StringIO
 import json
 import os
 import uuid  # Importamos uuid para generar IDs únicos de sesión
@@ -98,8 +98,8 @@ def reset_state():
     st.session_state.pregunta_actual = 0
     st.session_state.num_preguntas = 5
 
-# Función para exportar datos a Excel
-def export_excel():
+# Función para exportar datos a CSV (más compatible que Excel)
+def export_data():
     # Preparar datos para estadísticas
     if st.session_state.estudiantes.empty:
         return None
@@ -124,54 +124,8 @@ def export_excel():
             lambda x: "Correcta" if i < len(x) and x[i] == '1' else "Incorrecta"
         )
     
-    # Crear un Excel en memoria
-    output = BytesIO()
-    
-    # Método simplificado para crear Excel sin formato avanzado
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        # Hoja 1: Resumen de notas
-        df_stats[['Nombre', 'Respuestas_Correctas', 'Total_Preguntas', 'Porcentaje', 'Nota_Vigesimal', 'Estado']].to_excel(
-            writer, sheet_name='Resumen', index=False
-        )
-        
-        # Hoja 2: Detalle de respuestas por pregunta
-        respuestas_columns = ['Nombre'] + [f'Pregunta_{i+1}' for i in range(st.session_state.num_preguntas)]
-        df_stats[respuestas_columns].to_excel(
-            writer, sheet_name='Detalle_Respuestas', index=False
-        )
-        
-        # Hoja 3: Estadísticas generales
-        # Crear un DataFrame con estadísticas generales
-        stats_generales = {
-            'Estadística': [
-                'Total de Estudiantes',
-                'Promedio de Notas',
-                'Nota Máxima',
-                'Nota Mínima',
-                'Estudiantes Aprobados',
-                'Estudiantes Regulares',
-                'Estudiantes Desaprobados',
-                'Fecha de Exportación'
-            ],
-            'Valor': [
-                len(df_stats),
-                round(df_stats['Nota_Vigesimal'].mean(), 2),
-                df_stats['Nota_Vigesimal'].max(),
-                df_stats['Nota_Vigesimal'].min(),
-                sum(df_stats['Estado'] == 'APROBADO'),
-                sum(df_stats['Estado'] == 'REGULAR'),
-                sum(df_stats['Estado'] == 'DESAPROBADO'),
-                datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-            ]
-        }
-        
-        pd.DataFrame(stats_generales).to_excel(
-            writer, sheet_name='Estadísticas_Generales', index=False
-        )
-    
-    # Devolver los bytes del Excel
-    output.seek(0)
-    return output.getvalue()
+    # Convertir a CSV
+    return df_stats.to_csv(index=False)
 
 # Esta función ya no se utiliza, usamos st.download_button en su lugar
 
@@ -555,17 +509,15 @@ if not st.session_state.estudiantes.empty:
         st.markdown("### Estadísticas de Participación")
     
     with col_export_button:
-        if st.session_state.estudiantes.empty:
-            st.write("")
-        else:
-            excel_data = export_excel()
-            if excel_data is not None:
+        if not st.session_state.estudiantes.empty:
+            csv_data = export_data()
+            if csv_data is not None:
                 st.download_button(
-                    label="Exportar Excel",
-                    data=excel_data,
-                    file_name="estadisticas_participacion.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    help="Descargar todas las estadísticas en formato Excel"
+                    label="Exportar CSV",
+                    data=csv_data,
+                    file_name="estadisticas_participacion.csv",
+                    mime="text/csv",
+                    help="Descargar todas las estadísticas en formato CSV"
                 )
     
     # Preparar datos para estadísticas
