@@ -565,7 +565,158 @@ st.markdown("""
         <div class="credits-divider"></div>
     </div>
 """, unsafe_allow_html=True)
+# Funciones de exportación a Excel
+def export_to_excel(df_stats, num_preguntas):
+    """
+    Exportar estadísticas de estudiantes a un archivo Excel con formato profesional
+    """
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+    from io import BytesIO
 
+    # Crear un búfer de BytesIO
+    output = BytesIO()
+    
+    # Crear un libro de trabajo y seleccionar la hoja de trabajo activa
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Estadísticas de Participación"
+    
+    # Definir estilos
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="0066CC", end_color="0066CC", fill_type="solid")
+    border = Border(left=Side(style='thin'), 
+                    right=Side(style='thin'), 
+                    top=Side(style='thin'), 
+                    bottom=Side(style='thin'))
+    
+    # Escribir encabezados
+    headers = ['Nombre', 'Respuestas Correctas', 'Porcentaje (%)', 'Nota (0-20)', 'Estado']
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    # Escribir datos de estudiantes
+    for row, (_, estudiante) in enumerate(df_stats.iterrows(), start=2):
+        respuestas_correctas = estudiante['Respuestas_Correctas']
+        porcentaje = (respuestas_correctas / num_preguntas) * 100
+        nota = round((respuestas_correctas / num_preguntas) * 20, 1)
+        
+        # Determinar estado
+        if nota >= 14:
+            estado = "APROBADO"
+        elif nota >= 11:
+            estado = "REGULAR"
+        else:
+            estado = "DESAPROBADO"
+        
+        # Escribir datos
+        ws.cell(row=row, column=1, value=estudiante['Nombre'])
+        ws.cell(row=row, column=2, value=respuestas_correctas)
+        ws.cell(row=row, column=3, value=round(porcentaje, 1))
+        ws.cell(row=row, column=4, value=nota)
+        ws.cell(row=row, column=5, value=estado)
+        
+        # Aplicar bordes y alineación centrada
+        for col in range(1, 6):
+            cell = ws.cell(row=row, column=col)
+            cell.border = border
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    # Ajustar automáticamente el ancho de las columnas
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(cell.value)
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    # Agregar sección de resumen
+    ws.cell(row=len(df_stats) + 3, column=1, value="Resumen General").font = Font(bold=True)
+    ws.cell(row=len(df_stats) + 4, column=1, value="Total de Estudiantes")
+    ws.cell(row=len(df_stats) + 4, column=2, value=len(df_stats))
+    ws.cell(row=len(df_stats) + 5, column=1, value="Promedio del Aula")
+    promedio = df_stats['Respuestas_Correctas'].mean() * 20 / num_preguntas
+    ws.cell(row=len(df_stats) + 5, column=2, value=round(promedio, 1))
+    
+    # Guardar en el búfer de BytesIO
+    wb.save(output)
+    output.seek(0)
+    
+    return output.getvalue()
+
+# Modificar la sección de estadísticas
+if not st.session_state.estudiantes.empty:
+    # ... (el código existente)
+    
+    with col4:
+        st.markdown("<div class='performance-stats'>", unsafe_allow_html=True)
+        st.markdown("<div class='stats-title'>Notas Vigesimales (0-20)</div>", unsafe_allow_html=True)
+        
+        # Notas por estudiante
+        st.markdown("<div class='stats-subtitle'>Calificaciones:</div>", unsafe_allow_html=True)
+        
+        # Calcular y mostrar notas
+        for _, estudiante in df_stats.iterrows():
+            nota = (estudiante['Respuestas_Correctas'] / st.session_state.num_preguntas) * 20
+            nota = round(nota, 1)
+            
+            # Determinar color según la nota
+            if nota >= 14:
+                color = '#28a745'  # Verde (Aprobado)
+                estado = "✓ APROBADO"
+            elif nota >= 11:
+                color = '#ffc107'  # Amarillo (Regular)
+                estado = "⚠ REGULAR"
+            else:
+                color = '#dc3545'  # Rojo (Desaprobado)
+                estado = "✗ DESAPROBADO"
+            
+            # Mostrar cada nota con formato
+            st.markdown(f"""
+                <div style='
+                    background-color: #f8f9fa;
+                    padding: 8px;
+                    border-radius: 5px;
+                    margin: 5px 0;
+                    border-left: 4px solid {color};
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                '>
+                    <div>
+                        <strong>{estudiante['Nombre']}</strong><br/>
+                        Nota: <span style='color:{color};font-size:1.1em;font-weight:bold'>{nota}</span><br/>
+                        <span style='color:{color};font-size:0.9em'>{estado}</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # Mostrar promedio del aula con botón de exportación
+        st.markdown("<div class='stats-highlight' style='margin-top:15px; display: flex; justify-content: space-between; align-items: center;'>", unsafe_allow_html=True)
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.markdown(f"📊 **Promedio del aula**: {promedio:.1f}")
+        with col2:
+            # Botón de exportación a Excel
+            excel_data = export_to_excel(df_stats, st.session_state.num_preguntas)
+            st.download_button(
+                label="📋",
+                data=excel_data,
+                file_name="estadisticas_participacion.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                help="Exportar estadísticas a Excel"
+            )
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
 # Crear un .gitignore para evitar subir datos de sesiones
 if not os.path.exists('.gitignore'):
     try:
