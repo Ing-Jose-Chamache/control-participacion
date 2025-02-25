@@ -212,7 +212,7 @@ def exportar_a_excel():
     # Obtener el valor binario del archivo
     excel_data = output.getvalue()
     return excel_data
-  # Funciones de persistencia
+    # Funciones de persistencia
 def save_state():
     # Usar el ID de sesión en el nombre del archivo
     state_data = {
@@ -252,8 +252,7 @@ def reset_state():
     st.session_state.preguntas = []
     st.session_state.pregunta_actual = 0
     st.session_state.num_preguntas = 5
-
-# Estilo personalizado
+    # Estilo personalizado
 st.markdown("""
     <style>
     .main {
@@ -574,7 +573,7 @@ if st.session_state.preguntas:
             save_state()
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
-  # Mostrar estudiantes
+    # Mostrar estudiantes
 for idx, estudiante in st.session_state.estudiantes.iterrows():
     st.markdown("<div class='student-row'>", unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([2, 6, 1, 1])
@@ -626,7 +625,7 @@ if questions_file:
     st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
     save_state()
     st.success(f"Se cargaron {len(st.session_state.preguntas)} preguntas")
-  # Estadísticas
+    # Estadísticas
 if not st.session_state.estudiantes.empty:
     st.markdown("### Estadísticas de Participación")
     
@@ -676,7 +675,7 @@ if not st.session_state.estudiantes.empty:
                 st.write(f"_{', '.join(estudiantes)}_")
         
         st.markdown("</div>", unsafe_allow_html=True)
-      with col4:
+        with col4:
         st.markdown("<div class='performance-stats'>", unsafe_allow_html=True)
         st.markdown("<div class='stats-title'>Notas Vigesimales (0-20)</div>", unsafe_allow_html=True)
         
