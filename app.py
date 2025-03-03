@@ -817,4 +817,4 @@ if not os.path.exists('.gitignore'):
         with open('.gitignore', 'w') as f:
             f.write("sesiones/\n.streamlit/\n")
     except:
-        pass  # Ignorar errores al crear el .gitignore
+        pass  # JYCHCH - Ignorar errores al crear el .gitignore
