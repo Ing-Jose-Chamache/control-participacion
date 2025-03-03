@@ -307,7 +307,7 @@ st.markdown("""
     .peru-clock {
         position: absolute;
         right: 50px;
-        top: 1px; /* Modificado: Movido mucho más arriba para alinearlo con la cabeza del personaje */
+        top: -500px; /* Modificado: Movido mucho más arriba para alinearlo con la cabeza del personaje */
         background-color: #ffffff;
         border-radius: 10px;
         padding: 10px 15px;
