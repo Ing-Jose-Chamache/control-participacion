@@ -416,7 +416,7 @@ st.markdown("""
     /* Estilos para el menú de IA */
     .ia-menu {
         position: fixed !important;
-        top: 20px !important;
+        top: 50px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         z-index: 9999 !important;
