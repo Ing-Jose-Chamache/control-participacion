@@ -19,28 +19,21 @@ if not os.path.exists('sesiones'):
     except Exception as e:
         pass  # Ignorar errores silenciosamente
 
+# Uso de query parameters para mantener el ID de sesión
+query_params = st.experimental_get_query_params()
+session_param = query_params.get('session_id', [None])[0]
+
 # Modificación: Inicialización del ID de sesión
-if 'session_id' not in st.session_state:
-    # Intentar leer el ID de sesión de un archivo de cookies persistente
-    try:
-        cookie_file = '.streamlit/cookie_store.json'
-        if os.path.exists(cookie_file):
-            with open(cookie_file, 'r') as f:
-                cookies = json.load(f)
-                if 'session_id' in cookies:
-                    st.session_state.session_id = cookies['session_id']
-                else:
-                    st.session_state.session_id = str(uuid.uuid4())
-        else:
-            st.session_state.session_id = str(uuid.uuid4())
-            
-        # Guardar ID de sesión
-        os.makedirs('.streamlit', exist_ok=True)
-        with open(cookie_file, 'w') as f:
-            json.dump({'session_id': st.session_state.session_id}, f)
-    except:
-        # Si algo falla, generamos un nuevo ID
+if 'session_id' not in st.session_state or session_param:
+    # Si hay un ID en el parámetro de URL, lo usamos
+    if session_param:
+        st.session_state.session_id = session_param
+    # De lo contrario generamos uno nuevo
+    else:
         st.session_state.session_id = str(uuid.uuid4())
+        # Actualizamos la URL con el nuevo ID de sesión
+        query_params['session_id'] = [st.session_state.session_id]
+        st.experimental_set_query_params(**query_params)
     
 # Mostrar ID de sesión estéticamente en la barra lateral
 st.sidebar.markdown(f"""
@@ -98,6 +91,12 @@ def reset_state():
     st.session_state.preguntas = []
     st.session_state.pregunta_actual = 0
     st.session_state.num_preguntas = 5
+    # Generar un nuevo ID de sesión para forzar una nueva sesión
+    st.session_state.session_id = str(uuid.uuid4())
+    # Actualizar la URL con el nuevo ID
+    query_params = st.experimental_get_query_params()
+    query_params['session_id'] = [st.session_state.session_id]
+    st.experimental_set_query_params(**query_params)
 
 # Función para descargar CSV
 def download_csv(df):
@@ -119,6 +118,14 @@ st.markdown("""
     .stButton>button {
         background-color: transparent;
         border: none;
+    }
+    button[data-testid="baseButton-secondary"] {
+        background-color: transparent !important;
+        color: #808080 !important;
+    }
+    button[data-testid="baseButton-primary"] {
+        background-color: #0066cc !important;
+        color: white !important;
     }
     div[data-testid="stFileUploader"] {
         width: 50px;
@@ -310,17 +317,20 @@ st.markdown("""
         z-index: 1001;
     }
     .chatgpt-link a {
-        display: block;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         width: 40px;
         height: 40px;
         background-color: #10a37f;
         border-radius: 50%;
         text-align: center;
-        line-height: 40px;
+        font-size: 14px;
         color: white;
         font-weight: bold;
         text-decoration: none;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 9999;
     }
     .chatgpt-link a:hover {
         background-color: #0d8c6d;
@@ -356,9 +366,11 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 # Enlace a ChatGPT en la esquina superior derecha
 st.markdown(
-    '<div class="chatgpt-link">'
-    '<a href="https://chatgpt.com" target="_blank" title="Ir a ChatGPT">GPT</a>'
-    '</div>',
+    '''
+    <div class="chatgpt-link">
+        <a href="https://chatgpt.com" target="_blank" title="Ir a ChatGPT">GPT</a>
+    </div>
+    ''',
     unsafe_allow_html=True
 )
 
@@ -484,8 +496,11 @@ for idx, estudiante in st.session_state.estudiantes.iterrows():
         st.markdown(f"<span style='color:{color};font-weight:bold;font-size:1.1em'>{nota}</span>", unsafe_allow_html=True)
     with col4:
         if st.button("🗑️", key=f"delete_{estudiante['Nombre']}"):
+            # Eliminar el estudiante del DataFrame
             st.session_state.estudiantes = st.session_state.estudiantes.drop(idx).reset_index(drop=True)
+            # Guardar el estado actualizado
             save_state()
+            # Recargar la página para reflejar los cambios
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
     
