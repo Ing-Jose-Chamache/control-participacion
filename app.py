@@ -99,6 +99,13 @@ def reset_state():
     st.session_state.pregunta_actual = 0
     st.session_state.num_preguntas = 5
 
+# Función para descargar CSV
+def download_csv(df):
+    csv = df.to_csv(index=False)
+    b64 = base64.b64encode(csv.encode()).decode()
+    href = f'<a href="data:file/csv;base64,{b64}" download="estadisticas_participacion.csv" class="download-button">📊 Descargar Estadísticas CSV</a>'
+    return href
+
 # Estilo personalizado
 st.markdown("""
     <style>
@@ -186,7 +193,7 @@ st.markdown("""
     .reset-button {
         position: fixed;
         top: 10px;
-        right: 10px;
+        right: 70px;
         z-index: 1000;
     }
     .reset-button button {
@@ -280,6 +287,45 @@ st.markdown("""
         top: 50%;
         transform: translateY(-50%);
     }
+    /* Nuevo botón de descarga */
+    .download-button {
+        display: inline-block;
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 15px;
+        text-align: center;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 10px 0;
+        font-weight: bold;
+    }
+    .download-button:hover {
+        background-color: #45a049;
+    }
+    /* Estilos para el botón de ChatGPT */
+    .chatgpt-link {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1001;
+    }
+    .chatgpt-link a {
+        display: block;
+        width: 40px;
+        height: 40px;
+        background-color: #10a37f;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 40px;
+        color: white;
+        font-weight: bold;
+        text-decoration: none;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .chatgpt-link a:hover {
+        background-color: #0d8c6d;
+        transform: scale(1.05);
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -307,6 +353,14 @@ if st.button("🗑️ Reiniciar Todo"):
     reset_state()
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
+
+# Enlace a ChatGPT en la esquina superior derecha
+st.markdown(
+    '<div class="chatgpt-link">'
+    '<a href="https://chatgpt.com" target="_blank" title="Ir a ChatGPT">GPT</a>'
+    '</div>',
+    unsafe_allow_html=True
+)
 
 # Header con Logo y Ruleta
 st.markdown('<div class="header-section">', unsafe_allow_html=True)
@@ -465,6 +519,9 @@ if not st.session_state.estudiantes.empty:
         'Porcentaje': st.session_state.estudiantes['Respuestas'].apply(lambda x: sum(1 for r in x if r == '1') / st.session_state.num_preguntas * 100)
     })
     
+    # Botón para descargar CSV de estadísticas
+    st.markdown(download_csv(df_stats), unsafe_allow_html=True)
+    
     col1, col2, col3, col4 = st.columns([3, 3, 3, 3])
     
     with col1:
@@ -573,4 +630,3 @@ if not os.path.exists('.gitignore'):
             f.write("sesiones/\n.streamlit/\n")
     except:
         pass  # Ignorar errores al crear el .gitignore
-
