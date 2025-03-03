@@ -154,11 +154,6 @@ st.sidebar.markdown(f"""
         <span style='color: #555;'>ID:</span> <span style='color: #0066cc; font-weight: bold;'>{st.session_state.session_id[:8]}...</span>
     </div>
 """, unsafe_allow_html=True)
-
-# RESTO DEL CÓDIGO PERMANECE IGUAL...
-# (aquí va todo el código que estaba en tu script original)
-# ... [continúa con el resto del script]
-
 # Funciones de persistencia
 def save_state():
     # Usar el ID de sesión en el nombre del archivo
