@@ -34,7 +34,7 @@ if 'session_id' not in st.session_state or session_param:
         # Actualizamos la URL con el nuevo ID de sesión
         query_params['session_id'] = st.session_state.session_id
 
-# Estilo personalizado
+# Estilo personalizado con estilos de AnyDesk e IA
 st.markdown("""
     <style>
     .main {
@@ -44,9 +44,14 @@ st.markdown("""
     .stApp {
         background-color: #f5f5f5;
     }
-    /* Todos los estilos anteriores... */
-
-    # Nuevos estilos para AnyDesk y IA Menu
+    
+    /* Estilos para AnyDesk y menú IA */
+    .anydesk-button {
+        position: fixed !important;
+        top: 10px !important;
+        right: 70px !important;
+        z-index: 1000 !important;
+    }
     .ia-menu {
         position: fixed !important;
         top: 10px !important;
@@ -94,23 +99,17 @@ st.markdown("""
     .ia-menu:hover .ia-dropdown {
         display: block;
     }
-    .anydesk-button {
-        position: fixed !important;
-        top: 10px !important;
-        right: 70px !important;
-        z-index: 1000 !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
-# Nuevo: Botón de Asistencia al Estudiante (AnyDesk)
+# Botón de Asistencia al Estudiante (AnyDesk)
 st.markdown("""
     <div class="anydesk-button">
         <a href="anydesk:" target="_blank" style="
             display: flex;
             align-items: center;
             background-color: #ff0000;
-            color: #000000;
+            color: #ffffff;
             font-weight: bold;
             padding: 8px 12px;
             border-radius: 5px;
@@ -121,12 +120,12 @@ st.markdown("""
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
                 <path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"/>
             </svg>
-            ASISTIENDO AL ESTUDIANTE
+            ASISTIR
         </a>
     </div>
 """, unsafe_allow_html=True)
 
-# Nuevo: Menú desplegable para elegir entre Claude y ChatGPT
+# Menú desplegable para elegir entre Claude y ChatGPT
 st.markdown(
     '''
     <div class="ia-menu">
@@ -138,22 +137,6 @@ st.markdown(
     </div>
     ''',
     unsafe_allow_html=True)
-
-# Mostrar ID de sesión estéticamente en la barra lateral
-st.sidebar.markdown(f"""
-    <div style='
-        background-color: #f0f8ff;
-        padding: 10px 15px;
-        border-radius: 8px;
-        border-left: 4px solid #0066cc;
-        margin-bottom: 15px;
-        font-size: 0.9em;
-        font-family: monospace;
-        display: inline-block;
-    '>
-        <span style='color: #555;'>ID:</span> <span style='color: #0066cc; font-weight: bold;'>{st.session_state.session_id[:8]}...</span>
-    </div>
-""", unsafe_allow_html=True)
 # Funciones de persistencia
 def save_state():
     # Usar el ID de sesión en el nombre del archivo
