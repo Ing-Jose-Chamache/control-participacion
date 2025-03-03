@@ -33,7 +33,112 @@ if 'session_id' not in st.session_state or session_param:
         st.session_state.session_id = str(uuid.uuid4())
         # Actualizamos la URL con el nuevo ID de sesión
         query_params['session_id'] = st.session_state.session_id
-    
+
+# Estilo personalizado
+st.markdown("""
+    <style>
+    .main {
+        padding: 1rem;
+        background-color: #f5f5f5;
+    }
+    .stApp {
+        background-color: #f5f5f5;
+    }
+    /* Todos los estilos anteriores... */
+
+    # Nuevos estilos para AnyDesk y IA Menu
+    .ia-menu {
+        position: fixed !important;
+        top: 10px !important;
+        right: 10px !important;
+        z-index: 9999 !important;
+    }
+    .ia-button {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 40px !important;
+        height: 40px !important;
+        background-color: #7b2cbf !important;
+        border-radius: 50% !important;
+        color: white !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+        text-decoration: none !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+        cursor: pointer !important;
+    }
+    .ia-dropdown {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 50px;
+        background-color: #ffffff;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 9999;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .ia-dropdown a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        border-bottom: 1px solid #f1f1f1;
+        font-size: 14px;
+    }
+    .ia-dropdown a:hover {
+        background-color: #f1f1f1;
+    }
+    .ia-menu:hover .ia-dropdown {
+        display: block;
+    }
+    .anydesk-button {
+        position: fixed !important;
+        top: 10px !important;
+        right: 70px !important;
+        z-index: 1000 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Nuevo: Botón de Asistencia al Estudiante (AnyDesk)
+st.markdown("""
+    <div class="anydesk-button">
+        <a href="anydesk:" target="_blank" style="
+            display: flex;
+            align-items: center;
+            background-color: #ff0000;
+            color: #000000;
+            font-weight: bold;
+            padding: 8px 12px;
+            border-radius: 5px;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-size: 0.8em;
+        ">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+                <path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"/>
+            </svg>
+            ASISTIENDO AL ESTUDIANTE
+        </a>
+    </div>
+""", unsafe_allow_html=True)
+
+# Nuevo: Menú desplegable para elegir entre Claude y ChatGPT
+st.markdown(
+    '''
+    <div class="ia-menu">
+        <div class="ia-button">IA</div>
+        <div class="ia-dropdown">
+            <a href="https://claude.ai" target="_blank">Claude AI</a>
+            <a href="https://chatgpt.com" target="_blank">ChatGPT</a>
+        </div>
+    </div>
+    ''',
+    unsafe_allow_html=True)
+
 # Mostrar ID de sesión estéticamente en la barra lateral
 st.sidebar.markdown(f"""
     <div style='
@@ -49,6 +154,10 @@ st.sidebar.markdown(f"""
         <span style='color: #555;'>ID:</span> <span style='color: #0066cc; font-weight: bold;'>{st.session_state.session_id[:8]}...</span>
     </div>
 """, unsafe_allow_html=True)
+
+# RESTO DEL CÓDIGO PERMANECE IGUAL...
+# (aquí va todo el código que estaba en tu script original)
+# ... [continúa con el resto del script]
 
 # Funciones de persistencia
 def save_state():
