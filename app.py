@@ -97,9 +97,30 @@ def reset_state():
 
 # Función para descargar CSV
 def download_csv(df):
-    csv = df.to_csv(index=False)
+    # Preparamos datos para el análisis completo
+    data_export = df.copy()
+    
+    # Añadimos columnas para el análisis completo
+    data_export['Nota_Vigesimal'] = data_export['Respuestas_Correctas'].apply(
+        lambda x: round((x / st.session_state.num_preguntas) * 20, 1)
+    )
+    
+    # Añadimos columna de estado
+    data_export['Estado'] = data_export['Nota_Vigesimal'].apply(
+        lambda nota: "APROBADO" if nota >= 14 else ("REGULAR" if nota >= 11 else "DESAPROBADO")
+    )
+    
+    # Añadimos columna de nivel de rendimiento
+    data_export['Nivel_Rendimiento'] = data_export['Porcentaje'].apply(
+        lambda p: "Excelente (90-100%)" if p >= 90 else 
+                 ("Bueno (70-89%)" if p >= 70 else 
+                  ("Regular (60-69%)" if p >= 60 else "En riesgo (<60%)"))
+    )
+    
+    # Exportamos el CSV
+    csv = data_export.to_csv(index=False)
     b64 = base64.b64encode(csv.encode()).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="estadisticas_participacion.csv" class="download-button">📊 Descargar Estadísticas CSV</a>'
+    href = f'<a href="data:file/csv;base64,{b64}" download="estadisticas_completas.csv" class="download-button">📊 Descargar Estadísticas Completas (CSV)</a>'
     return href
 
 # Estilo personalizado
@@ -362,37 +383,68 @@ if st.button("🗑️ Reiniciar Todo"):
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Asegurarse que el CSS del botón ChatGPT tenga alta prioridad
+# Asegurarse que el CSS del menú de IA tenga alta prioridad
 st.markdown("""
 <style>
-.chatgpt-link {
+.ia-menu {
     position: fixed !important;
     top: 10px !important;
     right: 10px !important;
     z-index: 9999 !important;
 }
-.chatgpt-link a {
+.ia-button {
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
     width: 40px !important;
     height: 40px !important;
-    background-color: #10a37f !important;
+    background-color: #7b2cbf !important;
     border-radius: 50% !important;
     color: white !important;
     font-weight: bold !important;
     font-size: 14px !important;
     text-decoration: none !important;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+    cursor: pointer !important;
+}
+.ia-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 50px;
+    background-color: #ffffff;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 9999;
+    border-radius: 5px;
+    overflow: hidden;
+}
+.ia-dropdown a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    border-bottom: 1px solid #f1f1f1;
+    font-size: 14px;
+}
+.ia-dropdown a:hover {
+    background-color: #f1f1f1;
+}
+.ia-menu:hover .ia-dropdown {
+    display: block;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# Enlace a ChatGPT en la esquina superior derecha
+# Menú desplegable para elegir entre Claude y ChatGPT
 st.markdown(
     '''
-    <div class="chatgpt-link">
-        <a href="https://chatgpt.com" target="_blank" title="Ir a ChatGPT">GPT</a>
+    <div class="ia-menu">
+        <div class="ia-button">IA</div>
+        <div class="ia-dropdown">
+            <a href="https://claude.ai" target="_blank">Claude AI</a>
+            <a href="https://chatgpt.com" target="_blank">ChatGPT</a>
+        </div>
     </div>
     ''',
     unsafe_allow_html=True
@@ -557,6 +609,18 @@ if not st.session_state.estudiantes.empty:
         'Respuestas_Correctas': st.session_state.estudiantes['Respuestas'].apply(lambda x: sum(1 for r in x if r == '1')),
         'Porcentaje': st.session_state.estudiantes['Respuestas'].apply(lambda x: sum(1 for r in x if r == '1') / st.session_state.num_preguntas * 100)
     })
+    
+    # Genera datos resumen para métricas adicionales en el CSV
+    promedio_clase = df_stats['Respuestas_Correctas'].mean() * 20 / st.session_state.num_preguntas
+    
+    # Preparamos todos los datos para facilitar exportación
+    df_stats['Nota_Vigesimal'] = df_stats['Respuestas_Correctas'].apply(
+        lambda x: round((x / st.session_state.num_preguntas) * 20, 1)
+    )
+    
+    df_stats['Estado'] = df_stats['Nota_Vigesimal'].apply(
+        lambda nota: "APROBADO" if nota >= 14 else ("REGULAR" if nota >= 11 else "DESAPROBADO")
+    )
     
     # Botón de descarga más visible
     download_button_html = download_csv(df_stats)
