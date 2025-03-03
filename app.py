@@ -19,29 +19,20 @@ if not os.path.exists('sesiones'):
     except Exception as e:
         pass  # Ignorar errores silenciosamente
 
-# Modificación: Inicialización del ID de sesión
+# Modificación: Mejorar la persistencia de ID de sesión
 if 'session_id' not in st.session_state:
-    # Intentar leer el ID de sesión de un archivo de cookies persistente
-    try:
-        cookie_file = '.streamlit/cookie_store.json'
-        if os.path.exists(cookie_file):
-            with open(cookie_file, 'r') as f:
-                cookies = json.load(f)
-                if 'session_id' in cookies:
-                    st.session_state.session_id = cookies['session_id']
-                else:
-                    st.session_state.session_id = str(uuid.uuid4())
-        else:
-            st.session_state.session_id = str(uuid.uuid4())
-            
-        # Guardar ID de sesión
-        os.makedirs('.streamlit', exist_ok=True)
-        with open(cookie_file, 'w') as f:
-            json.dump({'session_id': st.session_state.session_id}, f)
-    except:
-        # Si algo falla, generamos un nuevo ID
-        st.session_state.session_id = str(uuid.uuid4())
+    # Intentar obtener el ID de sesión almacenado en cookies del navegador
+    session_key = 'app_session_id'
+    session_id = st.experimental_get_query_params().get(session_key, [None])[0]
     
+    if not session_id:
+        # Si no hay ID en la URL, generar uno nuevo
+        session_id = str(uuid.uuid4())
+        # Actualizar la URL con el nuevo ID de sesión
+        st.experimental_set_query_params(**{session_key: session_id})
+    
+    st.session_state.session_id = session_id
+
 # Mostrar ID de sesión estéticamente en la barra lateral
 st.sidebar.markdown(f"""
     <div style='
@@ -67,6 +58,8 @@ def save_state():
         'pregunta_actual': st.session_state.pregunta_actual,
         'num_preguntas': st.session_state.num_preguntas
     }
+    # Asegurar que el directorio de sesiones exista
+    os.makedirs('sesiones', exist_ok=True)
     # Guardar en un archivo específico para esta sesión
     with open(f'sesiones/app_state_{st.session_state.session_id}.json', 'w') as f:
         json.dump(state_data, f)
@@ -120,8 +113,8 @@ def export_stats_csv():
         # Codificar el CSV para descarga
         b64 = base64.b64encode(csv.encode()).decode()
         
-        # Crear enlace de descarga
-        href = f'<a href="data:file/csv;base64,{b64}" download="estadisticas_participacion.csv" class="download-btn">Descargar Estadísticas CSV</a>'
+        # Crear enlace de descarga con texto en color negro
+        href = f'<a href="data:file/csv;base64,{b64}" download="estadisticas_participacion.csv" class="download-btn" style="color: #000 !important;">Descargar Estadísticas CSV</a>'
         return href
     return ""
 
@@ -346,7 +339,7 @@ st.markdown("""
         display: inline-block;
         padding: 10px 20px;
         background-color: #0066cc;
-        color: white;
+        color: black !important; /* Forzar color de texto negro */
         text-decoration: none;
         border-radius: 5px;
         font-weight: bold;
@@ -355,6 +348,7 @@ st.markdown("""
     }
     .download-btn:hover {
         background-color: #0052a3;
+        color: black !important; /* Mantener color negro al pasar el cursor */
     }
     .export-container {
         text-align: center;
@@ -381,7 +375,7 @@ if 'state_loaded' not in st.session_state:
         # Si se cargaron datos, no hacemos nada más
         pass
 
-# Botones de IA y AnyDesk
+# Botones de IA y AnyDesk (Corregidos con 'unsafe_allow_html=True' y enlaces directos)
 st.markdown("""
     <div class="ai-buttons-container">
         <a href="https://chatgpt.com/" target="_blank" class="ai-button chatgpt-button" title="Abrir ChatGPT">
@@ -553,7 +547,7 @@ if questions_file:
 if not st.session_state.estudiantes.empty:
     st.markdown("### Estadísticas de Participación")
     
-    # Agregar botón de exportar estadísticas
+    # Agregar botón de exportar estadísticas con texto negro
     st.markdown("<div class='export-container'>", unsafe_allow_html=True)
     st.markdown(export_stats_csv(), unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
@@ -642,8 +636,7 @@ if not st.session_state.estudiantes.empty:
                     <span style='color:{color};font-size:0.9em'>{estado}</span>
                 </div>
             """, unsafe_allow_html=True)
-        
-        # Mostrar promedio del aula
+            # Mostrar promedio del aula
         promedio = df_stats['Respuestas_Correctas'].mean() * 20 / st.session_state.num_preguntas
         st.markdown("<div class='stats-highlight' style='margin-top:15px'>", unsafe_allow_html=True)
         st.markdown(f"📊 **Promedio del aula**: {promedio:.1f}")
