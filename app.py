@@ -122,7 +122,7 @@ def download_csv(df):
     b64 = base64.b64encode(csv.encode()).decode()
     href = f'<a href="data:file/csv;base64,{b64}" download="estadisticas_completas.csv" class="download-button">📊 Descargar Estadísticas Completas (CSV)</a>'
     return href
-  # Estilo personalizado
+    # Estilo personalizado
 st.markdown("""
     <style>
     .main {
@@ -307,7 +307,7 @@ st.markdown("""
     .peru-clock {
         position: absolute;
         right: 50px;
-        top: 30px; /* Colocado en la parte superior */
+        top: 0px; /* Colocado aún más arriba para alinearlo con la imagen */
         background-color: #ffffff;
         border-radius: 10px;
         padding: 10px 15px;
@@ -640,7 +640,7 @@ if questions_file:
     st.session_state.preguntas = [linea.strip() for linea in contenido if linea.strip()]
     save_state()
     st.success(f"Se cargaron {len(st.session_state.preguntas)} preguntas")
-  # Mostrar estudiantes
+    # Mostrar estudiantes
 for idx, estudiante in st.session_state.estudiantes.iterrows():
     st.markdown("<div class='student-row'>", unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([2, 6, 1, 1])
@@ -684,7 +684,7 @@ for idx, estudiante in st.session_state.estudiantes.iterrows():
             <div class="separator-line"></div>
         </div>
     """, unsafe_allow_html=True)
-  # Estadísticas
+    # Estadísticas
 if not st.session_state.estudiantes.empty:
     st.markdown("### Estadísticas de Participación")
     
