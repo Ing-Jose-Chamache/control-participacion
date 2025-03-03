@@ -20,7 +20,7 @@ if not os.path.exists('sesiones'):
         pass  # Ignorar errores silenciosamente
 
 # Uso de query parameters para mantener el ID de sesión
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 session_param = query_params.get('session_id', [None])[0]
 
 # Modificación: Inicialización del ID de sesión
@@ -32,8 +32,7 @@ if 'session_id' not in st.session_state or session_param:
     else:
         st.session_state.session_id = str(uuid.uuid4())
         # Actualizamos la URL con el nuevo ID de sesión
-        query_params['session_id'] = [st.session_state.session_id]
-        st.experimental_set_query_params(**query_params)
+        query_params['session_id'] = st.session_state.session_id
     
 # Mostrar ID de sesión estéticamente en la barra lateral
 st.sidebar.markdown(f"""
@@ -94,9 +93,7 @@ def reset_state():
     # Generar un nuevo ID de sesión para forzar una nueva sesión
     st.session_state.session_id = str(uuid.uuid4())
     # Actualizar la URL con el nuevo ID
-    query_params = st.experimental_get_query_params()
-    query_params['session_id'] = [st.session_state.session_id]
-    st.experimental_set_query_params(**query_params)
+    st.query_params['session_id'] = st.session_state.session_id
 
 # Función para descargar CSV
 def download_csv(df):
@@ -255,6 +252,7 @@ st.markdown("""
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         border: 1px solid #eee;
         font-size: 0.85em;
+        clear: both;
     }
     .credits h2 {
         color: #0066cc;
@@ -363,6 +361,32 @@ if st.button("🗑️ Reiniciar Todo"):
     reset_state()
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
+
+# Asegurarse que el CSS del botón ChatGPT tenga alta prioridad
+st.markdown("""
+<style>
+.chatgpt-link {
+    position: fixed !important;
+    top: 10px !important;
+    right: 10px !important;
+    z-index: 9999 !important;
+}
+.chatgpt-link a {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    background-color: #10a37f !important;
+    border-radius: 50% !important;
+    color: white !important;
+    font-weight: bold !important;
+    font-size: 14px !important;
+    text-decoration: none !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Enlace a ChatGPT en la esquina superior derecha
 st.markdown(
@@ -534,8 +558,9 @@ if not st.session_state.estudiantes.empty:
         'Porcentaje': st.session_state.estudiantes['Respuestas'].apply(lambda x: sum(1 for r in x if r == '1') / st.session_state.num_preguntas * 100)
     })
     
-    # Botón para descargar CSV de estadísticas
-    st.markdown(download_csv(df_stats), unsafe_allow_html=True)
+    # Botón de descarga más visible
+    download_button_html = download_csv(df_stats)
+    st.markdown(f'<div style="text-align: center; margin: 15px 0;">{download_button_html}</div>', unsafe_allow_html=True)
     
     col1, col2, col3, col4 = st.columns([3, 3, 3, 3])
     
