@@ -805,7 +805,7 @@ st.markdown("""
             <strong>Desarrollador:</strong> Ing. José Yván Chamache Chiong<br>
             <strong>Lenguaje:</strong> Python<br>
             <strong>Ciudad:</strong> Lima, 25 Agosto 2025<br>
-            <strong>Escuela:</strong> Instructor de la Escuela Profesional de Artes Gráficas!!!
+            <strong>Escuela:</strong> Instructor de la Escuela Profesional de Artes Gráficas!!!!!!!
         </div>
         <div class="credits-divider"></div>
     </div>
